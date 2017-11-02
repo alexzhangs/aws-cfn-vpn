@@ -1,0 +1,327 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Template to create VPN services, contains 1 EC2 instance and 1 security groups. Also contains a nested template to create VPC reources.",
+  "Resources": {
+    "VPCStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {"Ref": "VPCStackTemplateURL"},
+        "Parameters": {
+          "NS": {
+            "Ref": "NS"
+          },
+          "VpcCidrBlock": {
+            "Ref": "VpcCidrBlock"
+          },
+          "SubnetCidrBlocks": {
+            "Fn::Join": [
+              ",",
+              {
+                "Ref": "SubnetCidrBlocks"
+              }
+            ]
+          }
+        },
+        "TimeoutInMinutes": "2"
+      }
+    },
+    "VPNServerSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "VPN server security group",
+        "VpcId": {
+          "Fn::GetAtt": [
+            "VPCStack",
+            "Outputs.VPC"
+          ]
+        },
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "500",
+            "ToPort": "500",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "udp",
+            "FromPort": "500",
+            "ToPort": "500",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "udp",
+            "FromPort": "4500",
+            "ToPort": "4500",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": {"Ref": "ShadowsocksServerAllowedPortMin"},
+            "ToPort": {"Ref": "ShadowsocksServerAllowedPortMax"},
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "udp",
+            "FromPort": {"Ref": "ShadowsocksServerAllowedPortMin"},
+            "ToPort": {"Ref": "ShadowsocksServerAllowedPortMax"},
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "NS"
+                  },
+                  "VPNServerSG"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "VPNServerInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionAMIMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyPairName"
+        },
+        "Monitoring": {
+          "Ref": "Monitoring"
+        },
+        "SubnetId": {
+          "Fn::GetAtt": [
+            "VPCStack",
+            "Outputs.PublicSubnet01"
+          ]
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "VPNServerSG"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": "8"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "NS"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -x\n",
+                "yum update -y aws-cfn-bootstrap\n",
+                "# Install the files and packages from the metadata\n",
+                "#/opt/aws/bin/cfn-init ",
+                "#         --stack ", {"Ref": "AWS::StackName"},
+                "#         --resource VPNServerInstance ",
+                "#         --configsets InstallAndRun ",
+                "#         --region ", {"Ref": "AWS::Region"}, "\n",
+
+                "# Signal the status from cfn-init\n",
+                "/opt/aws/bin/cfn-signal -e $?",
+                " --stack ", {"Ref": "AWS::StackName"},
+                " --resource VPNServerInstance",
+                " --region ", {"Ref": "AWS::Region"}, "\n"
+              ]
+            ]
+          }
+        }
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT8M"
+        }
+      },
+      "DependsOn": [
+        "VPCStack"
+      ]
+    }
+  },
+  "Parameters": {
+    "NS": {
+      "Type": "String",
+      "Default": "Foo",
+      "Description": "Enter a Name Space for Stack. Default is 'Foo'."
+    },
+    "NSLowerCase": {
+      "Type": "String",
+      "Default": "foo",
+      "Description": "Lower case of value of NS. Default is 'foo'."
+    },
+    "VpcCidrBlock": {
+      "Type": "String",
+      "Default": "10.30.0.0/16",
+      "Description": "Enter CIDR Block for VPC. Default is '10.30.0.0/16' (65536 IPs).",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "SubnetCidrBlocks": {
+      "Type": "CommaDelimitedList",
+      "Default": "10.30.0.0/24, 10.30.1.0/24, 10.30.2.0/24, 10.30.3.0/24",
+      "Description": "Comma-delimited list of CIDR blocks for subnets. Default is '10.30.0.0/24, 10.30.1.0/24, 10.30.2.0/24, 10.30.3.0/24' (256 IPs each).",
+      "ConstraintDescription": "The single CIDR block must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "Description": "Enter a Instance Type. Default is 't2.micro'."
+    },
+    "Monitoring": {
+      "Type": "String",
+      "Default": "false",
+      "Description": "Enter mornitor status. Default is 'false'."
+    },
+    "KeyPairName": {
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Default": "myhosts",
+      "Description": "Enter Key Pair name. Default is 'myhosts'"
+    },
+    "VPNServerDomain": {
+      "Type": "String",
+      "Default": "",
+      "Description": "VPN Server Domain Name. No need to specify an IP here, server IP will be used by default if leave this blank."
+    },
+    "VPNAdminEmail": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Enter a VPN admin Email address. Will be shown as contact on account notification Email."
+    },
+    "L2TPDSharedKey": {
+      "Type": "String",
+      "Default": "SharedSecret",
+      "Description": "Enter IPSec PSK. Default is 'SharedSecret'."
+    },
+    "L2TPDUsername": {
+      "Type": "String",
+      "Default": "vpnuser",
+      "Description": "Enter username. Default is 'vpnuser'."
+    },
+    "ShadowsocksServerAllowedPortMin": {
+      "Type": "String",
+      "Default": "8381",
+      "Description": "Start port for Security Group of Shadowsocks server. Default is '8381'. Will be used to configure a default Shadowsocks user.",
+      "AllowedPattern": "\\d{4,5}"
+    },
+    "ShadowsocksServerAllowedPortMax": {
+      "Type": "String",
+      "Default": "8480",
+      "Description": "End port for Security Group of Shadowsocks server. Default is '8480'.",
+      "AllowedPattern": "\\d{4,5}"
+    },
+    "VPNPassword": {
+      "Type": "String",
+      "Default": "passw0rd",
+      "Description": "Password to connecting to VPN server for both L2TP(for L2TPDUsername) and Shadowsocks(for minimum port). Default is 'passw0rd'."
+    },
+    "GithubDeployKey": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Github Deploy Key for the repository this stack uses."
+    },
+    "VPCStackTemplateURL": {
+      "Type": "String",
+      "Default": "",
+      "Description": "VPC Stack template URL, must be an AWS S3 URL."
+    }
+  },
+  "Mappings": {
+    "RegionAMIMap": {
+      "cn-north-1": {
+        "AMI": "ami-05a66c68"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-29160d47"
+      },
+      "ap-northeast-2": {
+        "AMI": "ami-983ce8f6"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-1ddc0b7e"
+      }
+    }
+  },
+  "Outputs": {
+    "PublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "VPNServerInstance",
+          "PublicIp"
+        ]
+      }
+    },
+    "VPNServerDomain": {
+      "Value": {
+        "Ref": "VPNServerDomain"
+      }
+    },
+    "VPNAdminEmail": {
+      "Value": {
+        "Ref": "VPNAdminEmail"
+      }
+    },
+    "L2TPDSharedKey": {
+      "Value": {
+        "Ref": "L2TPDSharedKey"
+      }
+    },
+    "L2TPDUsername": {
+      "Value": {
+        "Ref": "L2TPDUsername"
+      }
+    },
+    "ShadowsocksServerAllowedPortMin": {
+      "Value": {
+        "Ref": "ShadowsocksServerAllowedPortMin"
+      }
+    },
+    "ShadowsocksServerAllowedPortMax": {
+      "Value": {
+        "Ref": "ShadowsocksServerAllowedPortMax"
+      }
+    },
+    "VPNPassword": {
+      "Value": {
+        "Ref": "VPNPassword"
+      }
+    }
+  }
+}
