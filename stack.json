@@ -62,14 +62,14 @@
           },
           {
             "IpProtocol": "tcp",
-            "FromPort": {"Ref": "ShadowsocksServerAllowedPortMin"},
-            "ToPort": {"Ref": "ShadowsocksServerAllowedPortMax"},
+            "FromPort": {"Ref": "ShadowsocksServerPortBegin"},
+            "ToPort": {"Ref": "ShadowsocksServerPortEnd"},
             "CidrIp": "0.0.0.0/0"
           },
           {
             "IpProtocol": "udp",
-            "FromPort": {"Ref": "ShadowsocksServerAllowedPortMin"},
-            "ToPort": {"Ref": "ShadowsocksServerAllowedPortMax"},
+            "FromPort": {"Ref": "ShadowsocksServerPortBegin"},
+            "ToPort": {"Ref": "ShadowsocksServerPortEnd"},
             "CidrIp": "0.0.0.0/0"
           }
         ],
@@ -154,6 +154,39 @@
                 "#         --configsets InstallAndRun ",
                 "#         --region ", {"Ref": "AWS::Region"}, "\n",
 
+                "yum install -y git\n",
+
+                "# Get code\n",
+                "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
+                "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
+
+                "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-xl2tpd\n",
+                "git clone --depth 1 https://github.com/alexzhangs/chap-manager\n",
+
+                "# Install Shadowsocks and management tools\n",
+                "bash aws-ec2-shadowsocks-libev/install.sh\n",
+                "bash shadowsocks-manager/install.sh\n",
+
+                "# Setup Shadowsocks and create default user\n",
+                "export PATH=/usr/local/bin:$PATH\n",
+                "ssm-user.sh -a add",
+                " -u ", {"Ref": "ShadowsocksServerPortBegin"},
+                " -p \"", {"Ref": "VPNPassword"}, "\"",
+                " -n \"Default User\"",
+                " -e \"", {"Ref": "VPNAdminEmail"}, "\"\n",
+
+                "# Install XL2TPD and management tool\n",
+                "bash aws-ec2-xl2tpd/install.sh",
+                " -k \"", {"Ref": "L2TPDSharedKey"}, "\"",
+                " -p ", {"Ref": "L2TPDPrimaryDNS"},
+                " -s ", {"Ref": "L2TPDSecondaryDNS"}, "\n",
+                "bash chap-manager/install.sh\n",
+
+                "# Setup XL2TPD and create default user\n",
+                "chap-manager.sh -a add",
+                " -u ", {"Ref": "L2TPDUsername"},
+                " -p \"", {"Ref": "VPNPassword"}, "\"\n",
+
                 "# Signal the status from cfn-init\n",
                 "/opt/aws/bin/cfn-signal -e $?",
                 " --stack ", {"Ref": "AWS::StackName"},
@@ -235,13 +268,31 @@
       "Default": "vpnuser",
       "Description": "Enter username. Default is 'vpnuser'."
     },
-    "ShadowsocksServerAllowedPortMin": {
+    "L2TPDPrimaryDNS": {
+      "Type": "String",
+      "Default": "8.8.8.8",
+      "Description": "Enter primary DNS. Default is '8.8.8.8'.",
+      "MinLength": "7",
+      "MaxLength": "15",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription": "Must be a valid IP address like x.x.x.x."
+    },
+    "L2TPDSecondaryDNS": {
+      "Type": "String",
+      "Default": "8.8.4.4",
+      "Description": "Enter primary DNS. Default is '8.8.4.4'.",
+      "MinLength": "7",
+      "MaxLength": "15",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription": "Must be a valid IP address like x.x.x.x."
+    },
+    "ShadowsocksServerPortBegin": {
       "Type": "String",
       "Default": "8381",
-      "Description": "Start port for Security Group of Shadowsocks server. Default is '8381'. Will be used to configure a default Shadowsocks user.",
+      "Description": "Begin port for Security Group of Shadowsocks server. Default is '8381'. Will be used to configure a default Shadowsocks user.",
       "AllowedPattern": "\\d{4,5}"
     },
-    "ShadowsocksServerAllowedPortMax": {
+    "ShadowsocksServerPortEnd": {
       "Type": "String",
       "Default": "8480",
       "Description": "End port for Security Group of Shadowsocks server. Default is '8480'.",
@@ -308,14 +359,24 @@
         "Ref": "L2TPDUsername"
       }
     },
-    "ShadowsocksServerAllowedPortMin": {
+    "L2TPDPrimaryDNS": {
       "Value": {
-        "Ref": "ShadowsocksServerAllowedPortMin"
+        "Ref": "L2TPDPrimaryDNS"
       }
     },
-    "ShadowsocksServerAllowedPortMax": {
+    "L2TPDSecondaryDNS": {
       "Value": {
-        "Ref": "ShadowsocksServerAllowedPortMax"
+        "Ref": "L2TPDSecondaryDNS"
+      }
+    },
+    "ShadowsocksServerPortBegin": {
+      "Value": {
+        "Ref": "ShadowsocksServerPortBegin"
+      }
+    },
+    "ShadowsocksServerPortEnd": {
+      "Value": {
+        "Ref": "ShadowsocksServerPortEnd"
       }
     },
     "VPNPassword": {
