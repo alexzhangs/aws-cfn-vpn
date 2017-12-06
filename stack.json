@@ -390,17 +390,17 @@
     },
     "SSEncrypt": {
       "Value": {
-        "Ref": "SSPortBegin"
+        "Ref": "SSEncrypt"
       }
     },
     "SSTimeout": {
       "Value": {
-        "Ref": "SSPortBegin"
+        "Ref": "SSTimeout"
       }
     },
     "SSFastopen": {
       "Value": {
-        "Ref": "SSPortBegin"
+        "Ref": "SSFastopen"
       }
     },
     "SSPortBegin": {
