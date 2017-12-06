@@ -154,7 +154,9 @@
                 "#         --configsets InstallAndRun ",
                 "#         --region ", {"Ref": "AWS::Region"}, "\n",
 
+                "yum update -y\n",
                 "yum install -y git\n",
+                "export PATH=/usr/local/bin:$PATH\n",
 
                 "# Get code\n",
                 "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
@@ -171,7 +173,6 @@
                 "bash shadowsocks-manager/install.sh\n",
 
                 "# Setup Shadowsocks and create default user\n",
-                "export PATH=/usr/local/bin:$PATH\n",
                 "ssm-user.sh -a add",
                 " -u ", {"Ref": "SSPortBegin"},
                 " -p \"", {"Ref": "VPNPassword"}, "\"",
