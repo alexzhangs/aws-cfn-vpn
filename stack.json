@@ -273,12 +273,14 @@
     "VPNPassword": {
       "Type": "String",
       "Default": "passw0rd",
-      "Description": "Password to connecting to VPN server for both L2TP(for L2TPDUsername) and Shadowsocks(for minimum port). Default is 'passw0rd'."
+      "Description": "Password to connecting to VPN server for both L2TP(for L2TPDUsername) and Shadowsocks(for minimum port). Default is 'passw0rd'.",
+      "NoEcho": "true"
     },
     "L2TPSharedKey": {
       "Type": "String",
       "Default": "SharedSecret",
-      "Description": "Enter IPSec PSK. Default is 'SharedSecret'."
+      "Description": "Enter IPSec PSK. Default is 'SharedSecret'.",
+      "NoEcho": "true"
     },
     "L2TPUsername": {
       "Type": "String",
@@ -370,16 +372,6 @@
     "VPNAdminEmail": {
       "Value": {
         "Ref": "VPNAdminEmail"
-      }
-    },
-    "VPNPassword": {
-      "Value": {
-        "Ref": "VPNPassword"
-      }
-    },
-    "L2TPSharedKey": {
-      "Value": {
-        "Ref": "L2TPSharedKey"
       }
     },
     "L2TPUsername": {
