@@ -41,36 +41,6 @@
             "FromPort": "22",
             "ToPort": "22",
             "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": "500",
-            "ToPort": "500",
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "udp",
-            "FromPort": "500",
-            "ToPort": "500",
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "udp",
-            "FromPort": "4500",
-            "ToPort": "4500",
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": {"Ref": "SSPortBegin"},
-            "ToPort": {"Ref": "SSPortEnd"},
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "udp",
-            "FromPort": {"Ref": "SSPortBegin"},
-            "ToPort": {"Ref": "SSPortEnd"},
-            "CidrIp": "0.0.0.0/0"
           }
         ],
         "Tags": [
@@ -91,12 +61,108 @@
         ]
       }
     },
+    "L2TPIKEIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableL2TP",
+      "Properties": {
+        "IpProtocol": "udp",
+        "FromPort": 500,
+        "ToPort": 500,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "VPNServerSG",
+            "GroupId"
+          ]
+        }
+      } 
+    },
+    "L2TPNATIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableL2TP",
+      "Properties": {
+        "IpProtocol": "udp",
+        "FromPort": 4500,
+        "ToPort": 4500,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "VPNServerSG",
+            "GroupId"
+          ]
+        }
+      } 
+    },
+    "SSTCPIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "FromPort": {"Ref": "SSPortBegin"},
+        "ToPort": {"Ref": "SSPortEnd"},
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "VPNServerSG",
+            "GroupId"
+          ]
+        }
+      } 
+    },
+    "SSUDPIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "IpProtocol": "udp",
+        "FromPort": {"Ref": "SSPortBegin"},
+        "ToPort": {"Ref": "SSPortEnd"},
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "VPNServerSG",
+            "GroupId"
+          ]
+        }
+      } 
+    },
+    "SSManagerAPIIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "IpProtocol": "udp",
+        "FromPort": {"Ref": "SSManagerPort"},
+        "ToPort": {"Ref": "SSManagerPort"},
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "VPNServerSG",
+            "GroupId"
+          ]
+        }
+      } 
+    },
+    "SSManagerIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "FromPort": {"Ref": "SSMPort"},
+        "ToPort": {"Ref": "SSMPort"},
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "VPNServerSG",
+            "GroupId"
+          ]
+        }
+      } 
+    },
     "VPNServerInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "ImageId": {
           "Fn::FindInMap": [
-            "RegionAMIMap",
+            "RegionMap",
             {
               "Ref": "AWS::Region"
             },
@@ -158,46 +224,86 @@
                 "yum install -y git\n",
                 "export PATH=/usr/local/bin:$PATH\n",
 
-                "# Get code\n",
-                "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
-                "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
+                "private_ip=$(curl http://169.254.169.254/latest/meta-data/private-ipv4)\n",
+                "public_ip=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)\n",
 
-                "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-xl2tpd\n",
-                "git clone --depth 1 https://github.com/alexzhangs/chap-manager\n",
+                {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
+                  "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
 
-                "# Install Shadowsocks and management tools\n",
-                "bash aws-ec2-shadowsocks-libev/install.sh",
-                " -m \"", {"Ref": "SSEncrypt"}, "\"",
-                " -t \"", {"Ref": "SSTimeout"}, "\"",
-                " -f \"", {"Ref": "SSFastopen"}, "\"\n",
-                "bash shadowsocks-manager/install.sh\n",
+                  "bash aws-ec2-shadowsocks-libev/install.sh",
+                  " -m '", {"Ref": "SSEncrypt"}, "'",
+                  " -t '", {"Ref": "SSTimeout"}, "'",
+                  " -f '", {"Ref": "SSFastopen"}, "'\n"
+                ]]}, ""]},
 
-                "# Setup Shadowsocks manager and create default user\n",
-                "ssm-config.sh",
-                " -s \"", {"Ref": "VPNServerDomain"}, "\"",
-                " -e \"", {"Ref": "VPNAdminEmail"}, "\"",
-                " -x \"", {"Ref": "SSPortBegin"}, "\"",
-                " -y \"", {"Ref": "SSPortEnd"}, "\"",
-                " -m \"", {"Ref": "SSEncrypt"}, "\"",
-                " -t \"", {"Ref": "SSTimeout"}, "\"",
-                " -f \"", {"Ref": "SSFastopen"}, "\"\n",
-                "ssm-user.sh -a add",
-                " -u \"", {"Ref": "SSPortBegin"}, "\"",
-                " -p \"", {"Ref": "VPNPassword"}, "\"",
-                " -n \"Default User\"",
-                " -e \"", {"Ref": "VPNAdminEmail"}, "\"\n",
+                {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
+                  "yum install -y rabbitmq-server\n",
+                  "service rabitmq-server start\n",
 
-                "# Install XL2TPD and management tool\n",
-                "bash aws-ec2-xl2tpd/install.sh",
-                " -k \"", {"Ref": "L2TPSharedKey"}, "\"",
-                " -p \"", {"Ref": "L2TPPrimaryDNS"}, "\"",
-                " -s \"", {"Ref": "L2TPSecondaryDNS"}, "\"\n",
-                "bash chap-manager/install.sh\n",
+                  "yum install -y memcached\n",
+                  "service memcached start\n",
 
-                "# Setup XL2TPD and create default user\n",
-                "chap-manager.sh -a add",
-                " -u \"", {"Ref": "L2TPUsername"}, "\"",
-                " -p \"", {"Ref": "VPNPassword"}, "\"\n",
+                  "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
+
+                  "bash shadowsocks-manager/install.sh",
+                  " -d '", {"Fn::If": ["SSMDomainIsNotNull", {"Ref": "SSMDomain"},
+                                        {"Fn::If": ["SSDomainIsNotNull", {"Ref": "SSDomain"},
+                                                    ""]}
+                                       ]}, "'",
+                  " -i \"$public_ip\"",
+                  " -o '", {"Ref": "SSMPort"}, "'",
+                  " -u '", {"Ref": "SSMAdminUsername"}, "'",
+                  " -p '", {"Ref": "SSMAdminPassword"}, "'",
+                  " -e '", {"Ref": "SSMAdminEmail"}, "'",
+                  " -t '", {"Ref": "SSMTimeZone"}, "'\n",
+
+                  "service shadowsocks-manager-web start\n",
+                  "chkconfig shadowsocks-manager-web on\n",
+
+                  "service shadowsocks-manager-job start\n",
+                  "chkconfig shadowsocks-manager-job on\n",
+
+                  "curl -X POST",
+                  " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
+                  " -d begin_port=", {"Ref": "SSPortBegin"},
+                  " -d end_port=", {"Ref": "SSPortEnd"},
+                  " --url \"http://$public_ip:", {"Ref": "SSMPort"}, "/shadowsocks/config/\"\n",
+
+                  "curl -X POST",
+                  " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
+                  " -d name='", {"Ref": "NS"}, "'",
+                  " -d domain=", {"Ref": "SSDomain"},
+                  " -d public_ip=$public_ip",
+                  " -d private_ip=$private_ip",
+                  " -d location='", {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "location"]}, "'",
+                  " --url \"http://$public_ip:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
+
+                  "curl -X POST",
+                  " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
+                  " -d node=1",
+                  " -d interface=", {"Ref": "SSManagerInterface"},
+                  " -d port=", {"Ref": "SSManagerPort"},
+                  " -d encrypt=", {"Ref": "SSEncrypt"},
+                  " -d timeout=", {"Ref": "SSTimeout"},
+                  " -d fastopen=", {"Ref": "SSFastopen"},
+                  " --url \"http://$public_ip:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
+                ]]}, ""]},
+
+                {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
+                  "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-xl2tpd\n",
+                  "git clone --depth 1 https://github.com/alexzhangs/chap-manager\n",
+
+                  "bash aws-ec2-xl2tpd/install.sh",
+                  " -k '", {"Ref": "L2TPSharedKey"}, "'",
+                  " -p '", {"Ref": "L2TPPrimaryDNS"}, "'",
+                  " -s '", {"Ref": "L2TPSecondaryDNS"}, "'\n",
+
+                  "bash chap-manager/install.sh\n",
+
+                  "chap-manager.sh -a add",
+                  " -u '", {"Ref": "L2TPUsername"}, "'",
+                  " -p '", {"Ref": "L2TPPassword"}, "'\n"
+                ]]}, ""]},
 
                 "# Signal the status from cfn-init\n",
                 "/opt/aws/bin/cfn-signal -e $?",
@@ -217,6 +323,23 @@
       "DependsOn": [
         "VPCStack"
       ]
+    }
+  },
+  "Conditions": {
+    "EnableSSN": {
+      "Fn::Equals": [{"Ref": "EnableSSN"}, "1"]
+    },
+    "EnableSSM": {
+      "Fn::Equals": [{"Ref": "EnableSSM"}, "1"]
+    },
+    "EnableL2TP": {
+      "Fn::Equals": [{"Ref": "EnableL2TP"}, "1"]
+    },
+    "SSMDomainIsNotNull": {
+      "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]
+    },
+    "SSDomainIsNotNull": {
+      "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSDomain"}]}]
     }
   },
   "Parameters": {
@@ -260,78 +383,132 @@
       "Default": "myhosts",
       "Description": "Enter Key Pair name. Default is 'myhosts'"
     },
-    "VPNServerDomain": {
+    "EnableSSN": {
+      "Type": "String",
+      "Default": "1",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether to install Shadowsocks server. 1: yes, 0: no. Default is '1'."
+    },
+    "EnableSSM": {
+      "Type": "String",
+      "Default": "1",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether to install Shadowsocks manager. 1: yes, 0: no. Default is '1'."
+    },
+    "EnableL2TP": {
+      "Type": "String",
+      "Default": "1",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether to install L2TP server. 1: yes, 0: no. Default is '1'."
+    },
+    "SSPortBegin": {
+      "Type": "String",
+      "Default": "8381",
+      "AllowedPattern": "\\d{1,5}",
+      "Description": "Begin port allowed to use for Shadowsocks server. Default is '8381'."
+    },
+    "SSPortEnd": {
+      "Type": "String",
+      "Default": "8480",
+      "AllowedPattern": "\\d{1,5}",
+      "Description": "End port allowed to use for Shadowsocks server. Default is '8480'."
+    },
+    "SSDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "VPN Server Domain Name. No need to specify an IP here, server IP will be used by default if leave this blank."
+      "Description": "Domain name resolved to Shadowsocks server. Example: vpn.yourdomain.com"
     },
-    "VPNAdminEmail": {
+    "SSManagerInterface": {
+      "Type": "String",
+      "Default": "1",
+      "Description": "Network interface bound to Manager API on the node. 1: Localhost, 2: Private, 3: Public. Default is 1"
+    },
+    "SSManagerPort": {
+      "Type": "String",
+      "Default": "6001",
+      "Description": "Port number bound to Manager API. Default is 6001"
+    },
+    "SSEncrypt": {
+      "Type": "String",
+      "Default": "aes-256-256",
+      "Description": "Encrypt method for Shadowsocks server. Default is 'aes-256-cfb'."
+    },
+    "SSTimeout": {
+      "Type": "String",
+      "Default": "60",
+      "AllowedPattern": "\\d{1,3}",
+      "Description": "Socket timeout in seconds for Shadowsocks server. Default is 60."
+    },
+    "SSFastopen": {
+      "Type": "String",
+      "Default": "false",
+      "Description": "Enable TCP fast open for Shadowsocks server. Default is 'false'."
+    },
+    "SSMDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "Enter a VPN admin Email address. Will be shown as contact on account notification Email."
+      "Description": "Domain Name resolved to Shadowsocks manager. Set this if don't want to use the same with Shadowsocks server. Example: vpn-admin.yourdomain.com."
     },
-    "VPNPassword": {
+    "SSMPort": {
+      "Type": "String",
+      "Default": "8000",
+      "Description": "Port number bound to Shadowsocks manager. Default is 8000"
+    },
+    "SSMAdminUsername": {
+      "Type": "String",
+      "Default": "admin",
+      "Description": "Username for Shadowsocks manager administrator. Default is 'admin'."
+    },
+    "SSMAdminPassword": {
       "Type": "String",
       "Default": "passw0rd",
-      "Description": "Password to connecting to VPN server for both L2TP(for L2TPDUsername) and Shadowsocks(for minimum port). Default is 'passw0rd'.",
-      "NoEcho": "true"
+      "NoEcho": "true",
+      "Description": "Password for Shadowsocks manager administrator. Default is 'passw0rd'."
     },
-    "L2TPSharedKey": {
+    "SSMAdminEmail": {
       "Type": "String",
-      "Default": "SharedSecret",
-      "Description": "Enter IPSec PSK. Default is 'SharedSecret'.",
-      "NoEcho": "true"
+      "Default": "",
+      "Description": "Email address for Shadowsocks manager administrator. Will be shown as contact in account notification Email."
+    },
+    "SSMTimeZone": {
+      "Type": "String",
+      "Default": "UTC",
+      "Description": "Prefered Time Zone. Default is 'UTC'."
     },
     "L2TPUsername": {
       "Type": "String",
       "Default": "vpnuser",
       "Description": "Enter username. Default is 'vpnuser'."
     },
+    "L2TPPassword": {
+      "Type": "String",
+      "Default": "passw0rd",
+      "NoEcho": "true",
+      "Description": "Password to connecting to L2TP server. Default is 'passw0rd'."
+    },
+    "L2TPSharedKey": {
+      "Type": "String",
+      "Default": "SharedSecret",
+      "NoEcho": "true",
+      "Description": "Enter IPSec PSK. Default is 'SharedSecret'."
+    },
     "L2TPPrimaryDNS": {
       "Type": "String",
       "Default": "8.8.8.8",
-      "Description": "Enter primary DNS. Default is '8.8.8.8'.",
       "MinLength": "7",
       "MaxLength": "15",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
-      "ConstraintDescription": "Must be a valid IP address like x.x.x.x."
+      "ConstraintDescription": "Must be a valid IP v4 address like x.x.x.x.",
+      "Description": "Enter primary DNS. Default is '8.8.8.8'."
     },
     "L2TPSecondaryDNS": {
       "Type": "String",
       "Default": "8.8.4.4",
-      "Description": "Enter primary DNS. Default is '8.8.4.4'.",
       "MinLength": "7",
       "MaxLength": "15",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
-      "ConstraintDescription": "Must be a valid IP address like x.x.x.x."
-    },
-    "SSEncrypt": {
-      "Type": "String",
-      "Default": "aes-256-256",
-      "Description": "Encrypt method. Default is 'aes-256-cfb'.",
-    },
-    "SSTimeout": {
-      "Type": "String",
-      "Default": "60",
-      "Description": "Socket timeout in seconds. Default is 60.",
-      "AllowedPattern": "\\d{1,3}"
-    },
-    "SSFastopen": {
-      "Type": "String",
-      "Default": "false",
-      "Description": "Enable TCP fast open. Default is 'false'.",
-    },
-    "SSPortBegin": {
-      "Type": "String",
-      "Default": "8381",
-      "Description": "Begin port for Security Group of Shadowsocks server. Default is '8381'. Will be used to configure a default Shadowsocks user.",
-      "AllowedPattern": "\\d{1,5}"
-    },
-    "SSPortEnd": {
-      "Type": "String",
-      "Default": "8480",
-      "Description": "End port for Security Group of Shadowsocks server. Default is '8480'.",
-      "AllowedPattern": "\\d{1,5}"
+      "ConstraintDescription": "Must be a valid IP v4 address like x.x.x.x.",
+      "Description": "Enter primary DNS. Default is '8.8.4.4'."
     },
     "VPCStackTemplateURL": {
       "Type": "String",
@@ -340,18 +517,98 @@
     }
   },
   "Mappings": {
-    "RegionAMIMap": {
-      "cn-north-1": {
-        "AMI": "ami-05a66c68"
+    "RegionMap": {
+      "ap-east-1": {
+        "endpoint": "rds.ap-east-1.amazonaws.com",
+        "location": "Asia Pacific (Hong Kong)"
       },
       "ap-northeast-1": {
-        "AMI": "ami-29160d47"
+        "AMI": "ami-29160d47",
+        "endpoint": "rds.ap-northeast-1.amazonaws.com",
+        "location": "Asia Pacific (Tokyo)"
       },
       "ap-northeast-2": {
-        "AMI": "ami-983ce8f6"
+        "AMI": "ami-983ce8f6",
+        "endpoint": "rds.ap-northeast-2.amazonaws.com",
+        "location": "Asia Pacific (Seoul)"
+      },
+      "ap-northeast-3": {
+        "endpoint": "rds.ap-northeast-3.amazonaws.com",
+        "location": "Asia Pacific (Osaka-Local)"
+      },
+      "ap-south-1": {
+        "endpoint": "rds.ap-south-1.amazonaws.com",
+        "location": "Asia Pacific (Mumbai)"
       },
       "ap-southeast-1": {
-        "AMI": "ami-1ddc0b7e"
+        "AMI": "ami-1ddc0b7e",
+        "endpoint": "rds.ap-southeast-1.amazonaws.com",
+        "location": "Asia Pacific (Singapore)"
+      },
+      "ap-southeast-2": {
+        "endpoint": "rds.ap-southeast-2.amazonaws.com",
+        "location": "Asia Pacific (Sydney)"
+      },
+      "ca-central-1": {
+        "endpoint": "rds.ca-central-1.amazonaws.com",
+        "location": "Canada (Central)"
+      },
+      "cn-north-1": {
+        "endpoint": "rds.cn-north-1.amazonaws.com.cn",
+        "location": "China (Beijing)"
+      },
+      "cn-northwest-1": {
+        "endpoint": "rds.cn-northwest-1.amazonaws.com.cn",
+        "location": "China (Ningxia)"
+      },
+      "eu-central-1": {
+        "endpoint": "rds.eu-central-1.amazonaws.com",
+        "location": "EU (Frankfurt)"
+      },
+      "eu-north-1": {
+        "AMI": "ami-05a66c68",
+        "endpoint": "rds.eu-north-1.amazonaws.com",
+        "location": "EU (Stockholm)"
+      },
+      "eu-west-1": {
+        "endpoint": "rds.eu-west-1.amazonaws.com",
+        "location": "EU (Ireland)"
+      },
+      "eu-west-2": {
+        "endpoint": "rds.eu-west-2.amazonaws.com",
+        "location": "EU (London)"
+      },
+      "eu-west-3": {
+        "endpoint": "rds.eu-west-3.amazonaws.com",
+        "location": "EU (Paris)"
+      },
+      "sa-east-1": {
+        "endpoint": "rds.sa-east-1.amazonaws.com",
+        "location": "South America (São Paulo)"
+      },
+      "us-east-1": {
+        "endpoint": "rds.us-east-1.amazonaws.com",
+        "location": "US East (N. Virginia)"
+      },
+      "us-east-2": {
+        "endpoint": "rds.us-east-2.amazonaws.com",
+        "location": "US East (Ohio)"
+      },
+      "us-gov-east-1": {
+        "endpoint": "rds.us-gov-east-1.amazonaws.com",
+        "location": "AWS GovCloud (US-East)"
+      },
+      "us-gov-west-1": {
+        "endpoint": "rds.us-gov-west-1.amazonaws.com",
+        "location": "AWS GovCloud (US)"
+      },
+      "us-west-1": {
+        "endpoint": "rds.us-west-1.amazonaws.com",
+        "location": "US West (N. California)"
+      },
+      "us-west-2": {
+        "endpoint": "rds.us-west-2.amazonaws.com",
+        "location": "US West (Oregon)"
       }
     }
   },
@@ -364,29 +621,29 @@
         ]
       }
     },
-    "VPNServerDomain": {
+    "SSPortBegin": {
       "Value": {
-        "Ref": "VPNServerDomain"
+        "Ref": "SSPortBegin"
       }
     },
-    "VPNAdminEmail": {
+    "SSPortEnd": {
       "Value": {
-        "Ref": "VPNAdminEmail"
+        "Ref": "SSPortEnd"
       }
     },
-    "L2TPUsername": {
+    "SSDomain": {
       "Value": {
-        "Ref": "L2TPUsername"
+        "Ref": "SSDomain"
       }
     },
-    "L2TPPrimaryDNS": {
+    "SSManagerInterface": {
       "Value": {
-        "Ref": "L2TPPrimaryDNS"
+        "Ref": "SSManagerInterface"
       }
     },
-    "L2TPSecondaryDNS": {
+    "SSManagerPort": {
       "Value": {
-        "Ref": "L2TPSecondaryDNS"
+        "Ref": "SSManagerPort"
       }
     },
     "SSEncrypt": {
@@ -404,14 +661,44 @@
         "Ref": "SSFastopen"
       }
     },
-    "SSPortBegin": {
+    "SSMDomain": {
       "Value": {
-        "Ref": "SSPortBegin"
+        "Ref": "SSMDomain"
       }
     },
-    "SSPortEnd": {
+    "SSMPort": {
       "Value": {
-        "Ref": "SSPortEnd"
+        "Ref": "SSMPort"
+      }
+    },
+    "SSMAdminUsername": {
+      "Value": {
+        "Ref": "SSMAdminUsername"
+      }
+    },
+    "SSMAdminEmail": {
+      "Value": {
+        "Ref": "SSMAdminEmail"
+      }
+    },
+    "SSMTimeZone": {
+      "Value": {
+        "Ref": "SSMTimeZone"
+      }
+    },
+    "L2TPUsername": {
+      "Value": {
+        "Ref": "L2TPUsername"
+      }
+    },
+    "L2TPPrimaryDNS": {
+      "Value": {
+        "Ref": "L2TPPrimaryDNS"
+      }
+    },
+    "L2TPSecondaryDNS": {
+      "Value": {
+        "Ref": "L2TPSecondaryDNS"
       }
     }
   }
