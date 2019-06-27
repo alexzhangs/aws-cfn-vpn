@@ -250,7 +250,7 @@
                                         {"Fn::If": ["SSDomainIsNotNull", {"Ref": "SSDomain"},
                                                     ""]}
                                        ]}, "'",
-                  " -i \"$public_ip\"",
+                  " -i \"$private_ip\"",
                   " -o '", {"Ref": "SSMPort"}, "'",
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
@@ -267,7 +267,7 @@
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
                   " -d begin_port=", {"Ref": "SSPortBegin"},
                   " -d end_port=", {"Ref": "SSPortEnd"},
-                  " --url \"http://$public_ip:", {"Ref": "SSMPort"}, "/shadowsocks/config/\"\n",
+                  " --url \"http://$private_ip:", {"Ref": "SSMPort"}, "/shadowsocks/config/\"\n",
 
                   "curl -X POST",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
@@ -276,7 +276,7 @@
                   " -d public_ip=$public_ip",
                   " -d private_ip=$private_ip",
                   " -d location='", {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "location"]}, "'",
-                  " --url \"http://$public_ip:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
+                  " --url \"http://$private_ip:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
 
                   "curl -X POST",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
@@ -286,7 +286,7 @@
                   " -d encrypt=", {"Ref": "SSEncrypt"},
                   " -d timeout=", {"Ref": "SSTimeout"},
                   " -d fastopen=", {"Ref": "SSFastopen"},
-                  " --url \"http://$public_ip:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
+                  " --url \"http://$private_ip:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
