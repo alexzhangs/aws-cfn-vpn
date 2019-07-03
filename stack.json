@@ -621,85 +621,13 @@
         ]
       }
     },
-    "SSPortBegin": {
+    "PrivateIp": {
       "Value": {
-        "Ref": "SSPortBegin"
+        "Fn::GetAtt": [
+          "VPNServerInstance",
+          "PrivateIp"
+        ]
       }
     },
-    "SSPortEnd": {
-      "Value": {
-        "Ref": "SSPortEnd"
-      }
-    },
-    "SSDomain": {
-      "Value": {
-        "Ref": "SSDomain"
-      }
-    },
-    "SSManagerInterface": {
-      "Value": {
-        "Ref": "SSManagerInterface"
-      }
-    },
-    "SSManagerPort": {
-      "Value": {
-        "Ref": "SSManagerPort"
-      }
-    },
-    "SSEncrypt": {
-      "Value": {
-        "Ref": "SSEncrypt"
-      }
-    },
-    "SSTimeout": {
-      "Value": {
-        "Ref": "SSTimeout"
-      }
-    },
-    "SSFastopen": {
-      "Value": {
-        "Ref": "SSFastopen"
-      }
-    },
-    "SSMDomain": {
-      "Value": {
-        "Ref": "SSMDomain"
-      }
-    },
-    "SSMPort": {
-      "Value": {
-        "Ref": "SSMPort"
-      }
-    },
-    "SSMAdminUsername": {
-      "Value": {
-        "Ref": "SSMAdminUsername"
-      }
-    },
-    "SSMAdminEmail": {
-      "Value": {
-        "Ref": "SSMAdminEmail"
-      }
-    },
-    "SSMTimeZone": {
-      "Value": {
-        "Ref": "SSMTimeZone"
-      }
-    },
-    "L2TPUsername": {
-      "Value": {
-        "Ref": "L2TPUsername"
-      }
-    },
-    "L2TPPrimaryDNS": {
-      "Value": {
-        "Ref": "L2TPPrimaryDNS"
-      }
-    },
-    "L2TPSecondaryDNS": {
-      "Value": {
-        "Ref": "L2TPSecondaryDNS"
-      }
-    }
   }
 }
