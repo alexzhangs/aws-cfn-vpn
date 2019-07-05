@@ -260,22 +260,17 @@
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
                   "bash shadowsocks-manager/install.sh",
-                  " -d '", {"Fn::If": ["SSMDomainIsNotNull", {"Ref": "SSMDomain"},
+                  " -n '", {"Fn::If": ["SSMDomainIsNotNull", {"Ref": "SSMDomain"},
                                         {"Fn::If": ["SSDomainIsNotNull", {"Ref": "SSDomain"},
                                                     ""]}
                                        ]}, "'",
-                  " -i \"$private_ip\"",
-                  " -o '", {"Ref": "SSMPort"}, "'",
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
                   " -e '", {"Ref": "SSMAdminEmail"}, "'",
                   " -t '", {"Ref": "SSMTimeZone"}, "'\n",
 
-                  "service shadowsocks-manager-web start\n",
-                  "chkconfig shadowsocks-manager-web on\n",
-
-                  "service shadowsocks-manager-job start\n",
-                  "chkconfig shadowsocks-manager-job on\n",
+                  "supervisorctl reload\n",
+                  "service nginx reload\n",
 
                   "curl -X POST",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
