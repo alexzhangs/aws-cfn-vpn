@@ -285,6 +285,7 @@
                   " -d public_ip=$public_ip",
                   " -d private_ip=$private_ip",
                   " -d location='", {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "location"]}, "'",
+                  " -d is_active=1",
                   " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
 
                   "curl -X POST",
