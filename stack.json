@@ -245,6 +245,18 @@
                   "chkconfig --add memcached\n",
                   "service memcached start\n",
 
+                  "yum install -y nginx\n",
+                  "chkconfig --add nginx\n",
+                  "nginx -t && service nginx start\n",
+
+                  "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-supervisor\n",
+                  "bash aws-ec2-supervisor/aws-ec2-supervisor-install.sh -i -v 4.0.3\n",
+                  "chkconfig --add supervisord\n",
+                  "service supervisord start\n",
+
+                  "yum install -y gcc\n",
+                  "pip install uwsgi==2.0.18\n",
+
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
                   "bash shadowsocks-manager/install.sh",
