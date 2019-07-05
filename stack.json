@@ -272,6 +272,9 @@
                   "supervisorctl reload\n",
                   "service nginx reload\n",
 
+                  "# sleep 1 minute to wait uWSGI to start\n",
+                  "sleep 60\n",
+
                   "curl -X PUT",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
                   " -d port_begin=", {"Ref": "SSPortBegin"},
