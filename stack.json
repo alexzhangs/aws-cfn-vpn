@@ -626,6 +626,11 @@
     }
   },
   "Outputs": {
+    "InstanceId": {
+      "Value": {
+        "Ref": "VPNServerInstance"
+      }
+    },
     "PublicIp": {
       "Value": {
         "Fn::GetAtt": [
