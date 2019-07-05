@@ -272,11 +272,11 @@
                   "supervisorctl reload\n",
                   "service nginx reload\n",
 
-                  "curl -X POST",
+                  "curl -X PUT",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
                   " -d begin_port=", {"Ref": "SSPortBegin"},
                   " -d end_port=", {"Ref": "SSPortEnd"},
-                  " --url \"http://$private_ip:", {"Ref": "SSMPort"}, "/shadowsocks/config/\"\n",
+                  " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/config/1/\"\n",
 
                   "curl -X POST",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
@@ -285,7 +285,7 @@
                   " -d public_ip=$public_ip",
                   " -d private_ip=$private_ip",
                   " -d location='", {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "location"]}, "'",
-                  " --url \"http://$private_ip:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
+                  " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
 
                   "curl -X POST",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
@@ -295,7 +295,7 @@
                   " -d encrypt=", {"Ref": "SSEncrypt"},
                   " -d timeout=", {"Ref": "SSTimeout"},
                   " -d fastopen=", {"Ref": "SSFastopen"},
-                  " --url \"http://$private_ip:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
+                  " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
