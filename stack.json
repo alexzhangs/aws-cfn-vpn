@@ -274,8 +274,8 @@
 
                   "curl -X PUT",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
-                  " -d begin_port=", {"Ref": "SSPortBegin"},
-                  " -d end_port=", {"Ref": "SSPortEnd"},
+                  " -d port_begin=", {"Ref": "SSPortBegin"},
+                  " -d port_end=", {"Ref": "SSPortEnd"},
                   " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/config/1/\"\n",
 
                   "curl -X POST",
