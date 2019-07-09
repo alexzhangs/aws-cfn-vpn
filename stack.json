@@ -239,7 +239,7 @@
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
                   "yum install -y rabbitmq-server\n",
                   "chkconfig --add rabbitmq-server\n",
-                  "service rabitmq-server start\n",
+                  "service rabbitmq-server start\n",
 
                   "yum install -y memcached\n",
                   "chkconfig --add memcached\n",
