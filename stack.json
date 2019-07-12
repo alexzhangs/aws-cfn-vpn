@@ -233,7 +233,12 @@
                   "bash aws-ec2-shadowsocks-libev/install.sh",
                   " -m '", {"Ref": "SSEncrypt"}, "'",
                   " -t '", {"Ref": "SSTimeout"}, "'",
-                  " -f '", {"Ref": "SSFastopen"}, "'\n"
+                  " -f '", {"Ref": "SSFastopen"}, "'"
+                  " -s '", {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
+                                       {"Fn::If": ["SSMIFPrivate", "$private_ip",
+                                                   {"Fn::If": ["SSMIFPublic", "$public_ip", ""]}
+                                                  ]}
+                                      ]}, "'\n",
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
@@ -353,6 +358,15 @@
     },
     "SSDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSDomain"}]}]
+    },
+    "SSMIFLocalhost": {
+      "Fn::Equals": [{"Ref": "SSManagerInterface"}, "1"]
+    },
+    "SSMIFPrivate": {
+      "Fn::Equals": [{"Ref": "SSManagerInterface"}, "2"]
+    },
+    "SSMIFPublic": {
+      "Fn::Equals": [{"Ref": "SSManagerInterface"}, "3"]
     }
   },
   "Parameters": {
