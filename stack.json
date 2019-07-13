@@ -640,6 +640,19 @@
     }
   },
   "Outputs": {
+    "VpcId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "VPCStack",
+          "Outputs.VPC"
+        ]
+      }
+    },
+    "SecurityGroupId": {
+      "Value": {
+        "Ref": "VPNServerSG"
+      }
+    },
     "InstanceId": {
       "Value": {
         "Ref": "VPNServerInstance"
