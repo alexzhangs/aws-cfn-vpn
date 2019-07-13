@@ -448,12 +448,12 @@
     "SSManagerInterface": {
       "Type": "String",
       "Default": "1",
-      "Description": "Network interface bound to Manager API on the node. 1: Localhost, 2: Private, 3: Public. Default is 1"
+      "Description": "Network interface bound to Shadowsocks Manager API on the node. 1: Localhost, 2: Private, 3: Public. Default is 1"
     },
     "SSManagerPort": {
       "Type": "String",
       "Default": "6001",
-      "Description": "Port number bound to Manager API. Default is 6001"
+      "Description": "Port number bound to Shadowsocks Manager API. Default is 6001"
     },
     "SSEncrypt": {
       "Type": "String",
