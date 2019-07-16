@@ -414,19 +414,19 @@
       "Type": "String",
       "Default": "1",
       "AllowedValues": ["0", "1"],
-      "Description": "Whether to install Shadowsocks server. 1: yes, 0: no. Default is '1'."
+      "Description": "Whether to install Shadowsocks server. 0: no, 1: yes. Default is '1'."
     },
     "EnableSSM": {
       "Type": "String",
       "Default": "1",
       "AllowedValues": ["0", "1"],
-      "Description": "Whether to install Shadowsocks manager. 1: yes, 0: no. Default is '1'."
+      "Description": "Whether to install Shadowsocks manager. 0: no, 1: yes. Default is '1'."
     },
     "EnableL2TP": {
       "Type": "String",
       "Default": "1",
       "AllowedValues": ["0", "1"],
-      "Description": "Whether to install L2TP server. 1: yes, 0: no. Default is '1'."
+      "Description": "Whether to install L2TP server. 0: no, 1: yes. Default is '1'."
     },
     "SSPortBegin": {
       "Type": "String",
