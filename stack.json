@@ -239,6 +239,7 @@
                                                    {"Fn::If": ["SSMIFPublic", "$public_ip", ""]}
                                                   ]}
                                        ]}, "\"",
+                  " -p '", {"Ref": "SSManagerPort"}, "'\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
