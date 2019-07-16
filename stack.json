@@ -234,11 +234,11 @@
                   " -m '", {"Ref": "SSEncrypt"}, "'",
                   " -t '", {"Ref": "SSTimeout"}, "'",
                   " -f '", {"Ref": "SSFastopen"}, "'",
-                  " -s '", {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
+                  " -s \"", {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
                                        {"Fn::If": ["SSMIFPrivate", "$private_ip",
                                                    {"Fn::If": ["SSMIFPublic", "$public_ip", ""]}
                                                   ]}
-                                      ]}, "'\n"
+                                       ]}, "\"",
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
