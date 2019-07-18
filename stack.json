@@ -2,10 +2,10 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "AWS CloudFormation Template to create VPN services, contains 1 EC2 instance and 1 security groups. Also contains a nested template to create VPC reources.",
   "Resources": {
-    "VPCStack": {
+    "VpcStack": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": {"Ref": "VPCStackTemplateURL"},
+        "TemplateURL": {"Ref": "VpcStackTemplateURL"},
         "Parameters": {
           "NS": {
             "Ref": "NS"
@@ -31,8 +31,8 @@
         "GroupDescription": "VPN server security group",
         "VpcId": {
           "Fn::GetAtt": [
-            "VPCStack",
-            "Outputs.VPC"
+            "VpcStack",
+            "Outputs.Vpc"
           ]
         },
         "SecurityGroupIngress" : [
@@ -180,7 +180,7 @@
         },
         "SubnetId": {
           "Fn::GetAtt": [
-            "VPCStack",
+            "VpcStack",
             "Outputs.PublicSubnet01"
           ]
         },
@@ -340,7 +340,7 @@
         }
       },
       "DependsOn": [
-        "VPCStack"
+        "VpcStack"
       ]
     }
   },
@@ -538,7 +538,7 @@
       "ConstraintDescription": "Must be a valid IP v4 address like x.x.x.x.",
       "Description": "Enter primary DNS. Default is '8.8.4.4'."
     },
-    "VPCStackTemplateURL": {
+    "VpcStackTemplateURL": {
       "Type": "String",
       "Default": "",
       "Description": "VPC Stack template URL, must be an AWS S3 URL."
@@ -644,8 +644,8 @@
     "VpcId": {
       "Value": {
         "Fn::GetAtt": [
-          "VPCStack",
-          "Outputs.VPC"
+          "VpcStack",
+          "Outputs.Vpc"
         ]
       }
     },
