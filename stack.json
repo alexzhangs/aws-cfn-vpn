@@ -125,7 +125,7 @@
         }
       }
     },
-    "SSManagerAPIIngress": {
+    "SSManagerIngress": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Condition": "EnableSSN",
       "Properties": {
@@ -141,7 +141,7 @@
         }
       }
     },
-    "SSManagerIngress": {
+    "SSMWebIngress": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Condition": "EnableSSM",
       "Properties": {
