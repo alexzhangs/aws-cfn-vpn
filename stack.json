@@ -45,6 +45,43 @@
         "TimeoutInMinutes": "2"
       }
     },
+    "VpcPeerRequesterStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "EnableVpcPeerRequester",
+      "Properties": {
+        "TemplateURL": {"Ref": "VpcPeerRequesterStackTemplateURL"},
+        "Parameters": {
+          "PeerRequesterId": {
+            "Fn::GetAtt": [
+              "VpcStack",
+              "Outputs.Vpc"
+            ]
+          },
+          "PeerAccepterId": {
+            "Ref": "VpcPeerRequestingId"
+          },
+          "PeerAccepterRegion": {
+            "Ref": "VpcPeerRequestingRegion"
+          },
+          "PeerAccepterAccountId": {
+            "Ref": "VpcPeerRequestingAccountId"
+          },
+          "PeerAccepterRoleArn": {
+            "Ref": "VpcPeerRequestingRoleArn"
+          },
+          "PeerRequesterRouteTableId": {
+            "Fn::GetAtt": [
+              "VpcStack",
+              "Outputs.PublicRouteTable"
+            ]
+          },
+          "PeerAccepterCidrBlock": {
+            "Ref": "VpcPeerRequestingCidrBlock"
+          }
+        },
+        "TimeoutInMinutes": "2"
+      }
+    },
     "VPNServerSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -368,6 +405,9 @@
     "EnableVpcPeerAccepter": {
       "Fn::Equals": [{"Ref": "EnableVpcPeerAccepter"}, "1"]
     },
+    "EnableVpcPeerRequester": {
+      "Fn::Equals": [{"Ref": "EnableVpcPeerRequester"}, "1"]
+    },
     "EnableSSN": {
       "Fn::Equals": [{"Ref": "EnableSSN"}, "1"]
     },
@@ -428,6 +468,46 @@
       "Type": "String",
       "Default": "10.0.0.0/16",
       "Description": "CIDR Block of the requester VPC.",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "EnableVpcPeerRequester": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether to create VPC peer connection requester resource. 0: no, 1: yes. Default is '0'."
+    },
+    "VpcPeerRequesterStackTemplateURL": {
+      "Type": "String",
+      "Default": "",
+      "Description": "VPC Peer Requester Stack template URL, must be an AWS S3 URL."
+    },
+    "VpcPeerRequestingId": {
+      "Type": "String",
+      "Default": "",
+      "Description": "VPC ID with which you are creating the VPC peering connection."
+    },
+    "VpcPeerRequestingRegion": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Region code for the accepter VPC."
+    },
+    "VpcPeerRequestingAccountId": {
+      "Type": "String",
+      "Default": "",
+      "Description": "AWS Account ID of the owner of the accepter VPC."
+    },
+    "VpcPeerRequestingRoleArn": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Amazon Resource Name (ARN) of the VPC peer role for the peering connection in another AWS account."
+    },
+    "VpcPeerRequestingCidrBlock": {
+      "Type": "String",
+      "Default": "10.0.0.0/16",
+      "Description": "CIDR Block of the accepter VPC.",
       "MinLength": "9",
       "MaxLength": "18",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
