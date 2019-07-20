@@ -25,6 +25,26 @@
         "TimeoutInMinutes": "2"
       }
     },
+    "VpcPeerAccepterStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "EnableVpcPeerAccepter",
+      "Properties": {
+        "TemplateURL": {"Ref": "VpcPeerAccepterStackTemplateURL"},
+        "Parameters": {
+          "PeerAccepterRouteTableId": {
+            "Fn::GetAtt": [
+              "VpcStack",
+              "Outputs.PublicRouteTable"
+            ]
+          },
+          "PeerRequesterCidrBlock": {
+            "Ref": "VpcPeerAcceptingCidrBlock"
+          },
+          "PeerRequesterId": "vpc-0ed18404c3ed59e35"
+        },
+        "TimeoutInMinutes": "2"
+      }
+    },
     "VPNServerSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -345,6 +365,9 @@
     }
   },
   "Conditions": {
+    "EnableVpcPeerAccepter": {
+      "Fn::Equals": [{"Ref": "EnableVpcPeerAccepter"}, "1"]
+    },
     "EnableSSN": {
       "Fn::Equals": [{"Ref": "EnableSSN"}, "1"]
     },
@@ -385,6 +408,26 @@
       "Type": "String",
       "Default": "10.0.0.0/16",
       "Description": "Enter CIDR Block for VPC. Default is '10.30.0.0/16' (65536 IPs).",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "EnableVpcPeerAccepter": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether to create VPC peer connection accepter resource. 0: no, 1: yes. Default is '0'."
+    },
+    "VpcPeerAccepterStackTemplateURL": {
+      "Type": "String",
+      "Default": "",
+      "Description": "VPC Peer Accepter Stack template URL, must be an AWS S3 URL."
+    },
+    "VpcPeerAcceptingCidrBlock": {
+      "Type": "String",
+      "Default": "10.0.0.0/16",
+      "Description": "CIDR Block of the requester VPC.",
       "MinLength": "9",
       "MaxLength": "18",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
@@ -646,6 +689,15 @@
         "Fn::GetAtt": [
           "VpcStack",
           "Outputs.Vpc"
+        ]
+      }
+    },
+    "VpcPeerRoleArn": {
+      "Condition": "EnableVpcPeerAccepter",
+      "Value": {
+        "Fn::GetAtt": [
+          "VpcPeerAccepterStack",
+          "Outputs.PeerRoleArn"
         ]
       }
     },
