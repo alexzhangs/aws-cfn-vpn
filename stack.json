@@ -43,7 +43,10 @@
           "PeerRequesterId": "vpc-0ed18404c3ed59e35"
         },
         "TimeoutInMinutes": "2"
-      }
+      },
+      "DependsOn": [
+        "VpcStack"
+      ]
     },
     "VpcPeerRequesterStack": {
       "Type": "AWS::CloudFormation::Stack",
@@ -80,7 +83,10 @@
           }
         },
         "TimeoutInMinutes": "2"
-      }
+      },
+      "DependsOn": [
+        "VpcStack"
+      ]
     },
     "VPNServerSG": {
       "Type": "AWS::EC2::SecurityGroup",
@@ -116,7 +122,10 @@
             }
           }
         ]
-      }
+      },
+      "DependsOn": [
+        "VpcStack"
+      ]
     },
     "L2TPIKEIngress": {
       "Type": "AWS::EC2::SecurityGroupIngress",
