@@ -31,16 +31,18 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerAccepterStackTemplateURL"},
         "Parameters": {
+          "NS": {
+            "Ref": "NS"
+          },
+          "NSLowerCase": {
+            "Ref": "NSLowerCase"
+          },
           "PeerAccepterRouteTableId": {
             "Fn::GetAtt": [
               "VpcStack",
               "Outputs.PublicRouteTable"
             ]
-          },
-          "PeerRequesterCidrBlock": {
-            "Ref": "VpcPeerAcceptingCidrBlock"
-          },
-          "PeerRequesterId": "vpc-0ed18404c3ed59e35"
+          }
         },
         "TimeoutInMinutes": "2"
       },
@@ -54,6 +56,12 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerRequesterStackTemplateURL"},
         "Parameters": {
+          "NS": {
+            "Ref": "NS"
+          },
+          "NSLowerCase": {
+            "Ref": "NSLowerCase"
+          },
           "PeerRequesterId": {
             "Fn::GetAtt": [
               "VpcStack",
@@ -80,6 +88,12 @@
           },
           "PeerAccepterCidrBlock": {
             "Ref": "VpcPeerRequestingCidrBlock"
+          },
+          "PeerAccepterSqsQueueUrl": {
+            "Ref": "VpcPeerRequestingSqsQueueUrl"
+          },
+          "PeerRequesterCidrBlock": {
+            "Ref": "VpcCidrBlock"
           }
         },
         "TimeoutInMinutes": "2"
@@ -522,6 +536,11 @@
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
     },
+    "VpcPeerRequestingSqsQueueUrl": {
+      "Type": "String",
+      "Default": "",
+      "Description": "AWS SQS queue URL of the accepter."
+    },
     "SubnetCidrBlocks": {
       "Type": "CommaDelimitedList",
       "Default": "10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24",
@@ -787,6 +806,15 @@
         "Fn::GetAtt": [
           "VpcPeerAccepterStack",
           "Outputs.PeerRoleArn"
+        ]
+      }
+    },
+    "VpcPeerAccepterSqsQueueUrl": {
+      "Condition": "EnableVpcPeerAccepter",
+      "Value": {
+        "Fn::GetAtt": [
+          "VpcPeerAccepterStack",
+          "Outputs.SqsQueueUrlForPeerRoute"
         ]
       }
     },
