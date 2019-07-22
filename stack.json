@@ -96,7 +96,7 @@
             "Ref": "VpcCidrBlock"
           }
         },
-        "TimeoutInMinutes": "2"
+        "TimeoutInMinutes": "3"
       },
       "DependsOn": [
         "VpcStack"
