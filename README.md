@@ -251,7 +251,6 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "KeyPairName=<your_aws_ec2_key_pair_name>"
     "VpcPeerAccepterRegion=<your_accepter_region>"
     "VpcPeerAccepterAccountId=<your_aws_account_id_of_owner_of_accepter>"
-    "SSDomain=<vpn.yourdomain.com>"
     ```
 
     Change any other settings as you want.
