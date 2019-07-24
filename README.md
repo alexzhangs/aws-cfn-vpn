@@ -130,14 +130,7 @@ NOTE: In either way, you must create IAM user or role to deploy the
 stack, you can not use AWS root user or its access key to do the
 deployment. Because there is IAM assume role inside the template,
 which assumes an action `ec2:AcceptVpcPeeringConnection` and AWS
-restricts it's can't be assumed by root user. Otherwise an error would
-be found in the events of stack while deployment.
-
-```
-"ResourceStatus": "CREATE_FAILED",
-"ResourceType": "AWS::EC2::VPCPeeringConnection",
-"ResourceStatusReason": "API: ec2:AcceptVpcPeeringConnection Roles may not be assumed by root accounts"
-```
+restricts it's can't be assumed by root user.
 
 ### Manually Deployment
 
@@ -204,7 +197,7 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "SSMDomain=<vpn-admin.yourdomain.com>"
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
     ```
-    
+
     Change any other settings as you want.
 
 1. Active your first AWS account profile.
@@ -250,7 +243,7 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "VpcPeerAccepterRoleArn=<your_rolearn_of_accepter_stack>"
     "VpcPeerAccepterSqsQueueUrl=<your_sqs_queue_url_of_accepter_stack>"
     ```
-    
+
     Replace the values wrapped by '<>' with your prefered.
 
     ```
@@ -283,7 +276,7 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 record`, such as `ss.yourdomain.com`.
 
 1. Add the public IP of manage node as `A record`, such as `admin.ss.aiview.com`.
- 
+
 1. Add the public IP of XL2TPD node as `A record`, such as `vpn.aiview.com`.
 
 ## Configure shadowsocks-manager
@@ -330,3 +323,24 @@ The default credentials defined in the conf file is:
 "L2TPPassword=passw0rd"
 "L2TPSharedKey=SharedSecret"
 ```
+
+## Troubleshooting
+
+1. The stack ends up at 'CREATE_FAILED' status.
+
+    Log in the AWS web console, go to CloudFormation, check the event
+    list of the stack, found the failed events to locate the root
+    reason, check the event list of nested stack if neccessary.
+
+1. For any problem related with the repoes that aws-cfn-vpn depends
+on, check with the depended repoes, here is the quick dial of star
+gates.
+
+   1. [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
+   1. [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
+   1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
+   1. [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev).
+   1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager).
+   1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
+   1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd).
+   1. [chap-manager](https://github.com/alexzhangs/chap-manager).
