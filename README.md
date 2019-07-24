@@ -31,7 +31,8 @@ aws-cfn-vpn (github)
 ├── aws-ec2-xl2tpd (github)
 │   ├── openswan (yum)
 │   └── xl2tpd (yum)
-└── chap-manager (github)
+├── chap-manager (github)
+└── aws-ec2-supervisor (github)
 ```
 
 ## Insight
@@ -336,11 +337,12 @@ The default credentials defined in the conf file is:
 on, check with the depended repoes, here is the quick dial of star
 gates.
 
-   1. [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
-   1. [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
-   1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
-   1. [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev).
-   1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager).
-   1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
-   1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd).
-   1. [chap-manager](https://github.com/alexzhangs/chap-manager).
+   1. [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc)
+   1. [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter)
+   1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester)
+   1. [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
+   1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
+   1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses)
+   1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd)
+   1. [chap-manager](https://github.com/alexzhangs/chap-manager)
+   1. [aws-ec2-supervisor](https://github.com/alexzhangs/aws-ec2-supervisor)
