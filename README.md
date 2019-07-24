@@ -47,7 +47,7 @@ following resources:
 
 * 1 nested VPC stack. For details check [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
 
-* 1 nested VPC peer aceepter stack,  accepting of VPC peer connection request from
+* 1 nested VPC peer accepter stack,  accepting VPC peer connection request from
 another VPC. For details check
 [aws-cfn-vpc-accepter](https://github.com/alexzhangs/aws-cfn-vpc-accepter).
 
@@ -89,9 +89,9 @@ only. There are 2 different type of deployments you may want to apply:
     This method gives you the ability to access to VPN node in different
     geography locations.
 
-  You may also combine the 2 methods above together to gain both
+    You may also combine the 2 methods above together to gain both
 avantages and still have a single center user management of
-Shadowsocks, this requires more complex DNS records designs.
+Shadowsocks, this requires more complex DNS records design.
 
 ## Domain Name Design
 
@@ -115,7 +115,7 @@ domain names.
 
 1. With the method 2 above, 3+ domain name needed.
 
-    you need to give a standalone domain name for each Shadowsocks
+    You need to give a standalone domain name for each Shadowsocks
     node, since balancing on different AWS Regions makes no sense.
 
 ## Deployment
@@ -169,17 +169,17 @@ TODO
 
 1. Create IAM user and give admin permissions for each account.
 
-```
-aws iam create-user --user-name admin
-aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
-```
+    ```
+    aws iam create-user --user-name admin
+    aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
+    ```
 
 1. Create access key for each  IAM user.
 
-```
-aws iam create-access-key --user-name admin
-aws configure --profile=<your_profile>
-```
+    ```
+    aws iam create-access-key --user-name admin
+    aws configure --profile=<your_profile>
+    ```
 
 #### Get the code
 
@@ -256,7 +256,7 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     Run below command at your local:
 
     ```
-    aws-cfn-deploy -b ./aws-cfn-vpn -t stack.json -c sample-ssn-0.conf
+    aws-cfn-deploy -b ./aws-cfn-vpn -t stack.json -c sample-ssn-1.conf
     ```
 
     Then wait the stack creation complete.
