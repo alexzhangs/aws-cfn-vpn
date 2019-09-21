@@ -75,7 +75,7 @@ CloudFormation template deployment.
 
 The classic scenario is:
 
-* First, deploy a center stack with Shadowsocks node, shadowsocks-manager
+* First, deploy a center stack with shadowsocks-manager
 and XL2TPD enabled.
 
 * Second, deploy one or more stack with Shadowsocks node enabled
@@ -90,9 +90,7 @@ only. There are 2 different type of deployments you may want to apply:
     This method gives you the ability to access to VPN node in different
     geography locations.
 
-    You may also combine the 2 methods above together to gain both
-avantages and still have a single center user management of
-Shadowsocks, this requires more complex DNS records design.
+    You may also combine the 2 methods above together to gain both avantages and still have a single center user management of Shadowsocks, this requires more complex DNS records design.
 
 ## Domain Name Design
 
@@ -140,7 +138,7 @@ upload of the templates.
 
 ### Deploy with `aws-cfn-deploy`
 
-This guide shows how to deploy multi Shadowsocks nodes(3) in the
+This guide shows how to deploy multi Shadowsocks nodes(2) in the
 method 2 above.
 
 TODO: Release `xsh` and `xsh-lib-aws` out.
@@ -161,45 +159,56 @@ TODO
 
 1. Create EC2 key pair for each account and save it to ~/.ssh.
 
+    ```bash
+    $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> <keyname>
+    ```
+
 1. Create IAM user and give admin permissions for each account.
 
-    ```
-    aws iam create-user --user-name admin
-    aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
+    ```sh
+    $ aws iam create-user --user-name admin
+    $ aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
     ```
 
 1. Create access key for each  IAM user.
 
-    ```
-    aws iam create-access-key --user-name admin
-    aws configure --profile=<your_profile>
+    ```sh
+    $ aws iam create-access-key --user-name admin
+    $ aws configure --profile=<your_profile>
     ```
 
 #### Get the code
 
 In the same directory:
 
-```
-git clone https://github.com/alexzhangs/aws-cfn-vpn
-git clone https://github.com/alexzhangs/aws-cfn-vpc
-git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
-git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
+```sh
+$ git clone https://github.com/alexzhangs/aws-cfn-vpn
+$ git clone https://github.com/alexzhangs/aws-cfn-vpc
+$ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
+$ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 ```
 
 #### Create the Manager Stack
 
-1. Edit `sample-ssm-and-ssn-0.conf`.
+1. Edit `sample-ssm.conf`.
 
     Replace the values wrapped by '<>' with your prefered.
 
     ```
     "KeyPairName=<your_aws_ec2_key_pair_name>"
-    "SSDomain=<vpn.yourdomain.com>"
     "SSMDomain=<vpn-admin.yourdomain.com>"
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
     ```
 
     Change any other settings as you want.
+
+    The conf above is creating a dedicated manager node without Shadowsocks service.
+
+    If going to create a Shadowsocks node along with the manager node, use `sample-ssm-and-ssn-0.conf` rather than `sample-ssm.conf`. And following settings need to be handled.
+
+    ```
+    "SSDomain=<vpn.yourdomain.com>"
+    ```
 
 1. Active your first AWS account profile.
 
@@ -207,8 +216,14 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
     Run below command at your local:
 
+    ```bash
+    $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm.conf
     ```
-    aws-cfn-deploy -b ./aws-cfn-vpn -t stack.json -c sample-ssm-and-ssn-0.conf
+
+    or
+
+    ```bash
+    $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm-and-ssn-0.conf
     ```
 
     Then wait the stack creation complete.
@@ -216,8 +231,8 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     If the stack creation complete successfully, run below command to get the
     output of the stack. Replace `<stack_name>` with the real stack name.
 
-    ```
-    aws-cfn-desc <stack_name>
+    ```bash
+    $ xsh aws/cfn/stack/desc <stack_name>
     ```
 
 1. Verify the manage stack deployment.
@@ -261,8 +276,8 @@ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
     Run below command at your local:
 
-    ```
-    aws-cfn-deploy -b ./aws-cfn-vpn -t stack.json -c sample-ssn-1.conf
+    ```bash
+    $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssn-1.conf
     ```
 
     Then wait the stack creation complete.
@@ -345,3 +360,47 @@ gates.
    1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd)
    1. [chap-manager](https://github.com/alexzhangs/chap-manager)
    1. [aws-ec2-supervisor](https://github.com/alexzhangs/aws-ec2-supervisor)
+
+1. Failed to delete the manager stack.
+
+   If VPC peer connections exist in the manager stacks, deleting the stacks will fail.
+
+   Solution:
+
+   Manually delete all existing peer connections belong to that stack first. This can be done with AWS web console, or the CLI:
+
+   ```sh
+   $ aws ec2 describe-vpc-peering-connections
+   $ aws ec2 delete-vpc-peering-connection --vpc-peering-connection-id <peering-connection-id>
+   ```
+
+1. Encountering errors while executing EC2 userdata.
+
+   This might be caused by using the untested AWS AMI.
+   The EC2 userdata is tested only with the AMI listed in the template.
+
+   ```json
+   "Mappings": {
+     "RegionMap": {
+       "ap-east-1": {
+         "endpoint": "rds.ap-east-1.amazonaws.com",
+         "location": "Asia Pacific (Hong Kong)"
+       },
+       "ap-northeast-1": {
+         "AMI": "ami-29160d47",
+         "endpoint": "rds.ap-northeast-1.amazonaws.com",
+         "location": "Asia Pacific (Tokyo)"
+       },
+       ...
+     }
+   }
+   ```
+
+   For the regions without an AMI, you need to figure it out by yourself. Usually an AWS AMI with which the template works, will look like:
+
+   ```
+   Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
+   ```
+
+   Some of Amazon Linux 2 AMIs have been proved not working.
+   Feel free to open pull requests for the verified compatible AMIs.
