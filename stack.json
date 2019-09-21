@@ -372,7 +372,9 @@
                   " -d port_begin=", {"Ref": "SSPortBegin"},
                   " -d port_end=", {"Ref": "SSPortEnd"},
                   " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/config/1/\"\n",
+                ]]}, ""]},
 
+                {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
                   "curl -X POST",
                   " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
                   " -d name='", {"Ref": "NS"}, "'",
