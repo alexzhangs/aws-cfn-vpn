@@ -324,20 +324,20 @@
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
                   "yum install -y rabbitmq-server\n",
-                  "chkconfig --add rabbitmq-server\n",
+                  "chkconfig rabbitmq-server on\n",
                   "service rabbitmq-server start\n",
 
                   "yum install -y memcached\n",
-                  "chkconfig --add memcached\n",
+                  "chkconfig memcached on\n",
                   "service memcached start\n",
 
                   "yum install -y nginx\n",
-                  "chkconfig --add nginx\n",
+                  "chkconfig nginx on\n",
                   "nginx -t && service nginx start\n",
 
                   "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-supervisor\n",
                   "bash aws-ec2-supervisor/aws-ec2-supervisor-install.sh -i -v 4.0.3\n",
-                  "chkconfig --add supervisord\n",
+                  "chkconfig supervisord on\n",
                   "service supervisord start\n",
 
                   "yum install -y gcc\n",
