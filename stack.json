@@ -777,6 +777,7 @@
         "location": "US West (N. California)"
       },
       "us-west-2": {
+        "AMI": "ami-08d489468314a58df",
         "endpoint": "rds.us-west-2.amazonaws.com",
         "location": "US West (Oregon)"
       }
