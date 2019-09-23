@@ -375,28 +375,28 @@
                   " -d port_begin=", {"Ref": "SSPortBegin"},
                   " -d port_end=", {"Ref": "SSPortEnd"},
                   " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/config/1/\"\n",
-                ]]}, ""]},
 
-                {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
-                  "curl -X POST",
-                  " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
-                  " -d name='", {"Ref": "NS"}, "'",
-                  " -d domain=", {"Ref": "SSDomain"},
-                  " -d public_ip=$public_ip",
-                  " -d private_ip=$private_ip",
-                  " -d location='", {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "location"]}, "'",
-                  " -d is_active=1",
-                  " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
+                  {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
+                    "curl -X POST",
+                    " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
+                    " -d name='", {"Ref": "NS"}, "'",
+                    " -d domain=", {"Ref": "SSDomain"},
+                    " -d public_ip=$public_ip",
+                    " -d private_ip=$private_ip",
+                    " -d location='", {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "location"]}, "'",
+                    " -d is_active=1",
+                    " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/node/\"\n",
 
-                  "curl -X POST",
-                  " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
-                  " -d node=1",
-                  " -d interface=", {"Ref": "SSManagerInterface"},
-                  " -d port=", {"Ref": "SSManagerPort"},
-                  " -d encrypt=", {"Ref": "SSEncrypt"},
-                  " -d timeout=", {"Ref": "SSTimeout"},
-                  " -d fastopen=", {"Ref": "SSFastopen"},
-                  " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
+                    "curl -X POST",
+                    " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
+                    " -d node=1",
+                    " -d interface=", {"Ref": "SSManagerInterface"},
+                    " -d port=", {"Ref": "SSManagerPort"},
+                    " -d encrypt=", {"Ref": "SSEncrypt"},
+                    " -d timeout=", {"Ref": "SSTimeout"},
+                    " -d fastopen=", {"Ref": "SSFastopen"},
+                    " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
+                  ]]}, ""]},
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
