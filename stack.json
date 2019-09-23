@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "AWS CloudFormation Template to create VPN services, contains 1 EC2 instance and 1 security groups. Also contains a nested template to create VPC reources.",
+  "Description": "AWS CloudFormation Template to create VPN services, contains 1 EC2 instance, 1 EIP and 1 security group. Also contains a nested template to create VPC reources.",
   "Resources": {
     "VpcStack": {
       "Type": "AWS::CloudFormation::Stack",
@@ -237,6 +237,14 @@
         }
       }
     },
+    "EIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "InstanceId": {
+          "Ref": "VPNServerInstance"
+        }
+      }
+    },
     "VPNServerInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
@@ -411,7 +419,12 @@
                 "/opt/aws/bin/cfn-signal -e $?",
                 " --stack ", {"Ref": "AWS::StackName"},
                 " --resource VPNServerInstance",
-                " --region ", {"Ref": "AWS::Region"}, "\n"
+                " --region ", {"Ref": "AWS::Region"}, "\n",
+
+                {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
+                  "# restart to let Django aware EIP.\n",
+                  "reboot\n"
+                ]]}, ""]},
               ]
             ]
           }
