@@ -302,11 +302,6 @@
 
                 "yum update -y\n",
 
-                "# workaround for error:\n",
-                "# Error: Package: shadowsocks-libev-3.2.0-2.el6.x86_64 (copr:copr.fedorainfracloud.org:librehat:shadowsocks)\n",
-                "#            Requires: mbedtls\n",
-                "yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm\n",
-
                 "yum install -y git\n",
                 "export PATH=/usr/local/bin:$PATH\n",
 
@@ -329,7 +324,7 @@
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
-                  "yum install -y rabbitmq-server\n",
+                  "yum install -y rabbitmq-server --enablerepo=epel\n",
                   "chkconfig rabbitmq-server on\n",
                   "service rabbitmq-server start\n",
 
