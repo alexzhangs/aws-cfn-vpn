@@ -616,8 +616,8 @@
     },
     "SSEncrypt": {
       "Type": "String",
-      "Default": "aes-256-cfb",
-      "Description": "Encrypt method for Shadowsocks server. Default is 'aes-256-cfb'."
+      "Default": "aes-256-gcm",
+      "Description": "Encrypt method for Shadowsocks server. Default is 'aes-256-gcm'."
     },
     "SSTimeout": {
       "Type": "String",
