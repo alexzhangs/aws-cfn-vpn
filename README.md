@@ -81,16 +81,13 @@ and XL2TPD enabled.
 * Second, deploy one or more stack with Shadowsocks node enabled
 only. There are 2 different type of deployments you may want to apply:
 
-    1. Deploy multi nodes in the same AWS Region, in different AWS
-    accounts.
-    This method allows you to balance the network traffic between AWS accounts.
+    1. Deploy multi nodes in the same AWS Region, in different AWS accounts.
+       This method allows you to balance the network traffic between AWS accounts.
 
-    1. Deploy multi nodes in different AWS Regions, either in the same AWS
-    account or in different AWS accounts.
-    This method gives you the ability to access to VPN node in different
-    geography locations.
+    1. Deploy multi nodes in different AWS Regions, either in the same AWS account or in different AWS accounts.
+       This method gives you the ability to access to VPN node in different geography locations.
 
-    You may also combine the 2 methods above together to gain both avantages and still have a single center user management of Shadowsocks, this requires more complex DNS records design.
+  You may also combine the 2 methods above together to gain both advantages and still have a single central user management of Shadowsocks, this requires more complex DNS records design.
 
 ## Domain Name Design
 
@@ -155,27 +152,31 @@ TODO
 
 1. Create 3 AWS accounts in the web if don't have.
 
-1. Create access key in the AWS web console for each account and add it as a profile.
-
-1. Create EC2 key pair for each account and save it to ~/.ssh.
-
-    ```bash
-    $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> <keyname>
-    ```
-
 1. Create IAM user and give admin permissions for each account.
+
+    This can be done with AWS CLI if you already have access key configured for the account, otherwise just use web console.
 
     ```sh
     $ aws iam create-user --user-name admin
     $ aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
     ```
 
-1. Create access key for each  IAM user.
+1. Create access key for each  IAM user created in last step.
+
+    This can be done with AWS CLI if you already have access key configured for the account, otherwise just use web console.
 
     ```sh
     $ aws iam create-access-key --user-name admin
-    $ aws configure --profile=<your_profile>
     ```
+
+1. Create a profile with the access key created in last step.
+
+   A region is needed to be set in this step.
+
+   ```sh
+   $ aws configure --profile=<your_profile>
+   ```
+
 
 #### Get the code
 
@@ -190,11 +191,26 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
 #### Create the Manager Stack
 
+
+1. Active your first AWS account profile.
+
+   ```
+   # activate profile for the account
+   $ xsh aws/cfg/activate <your_profile>
+   ```
+
+1. Create EC2 key pair and save it to ~/.ssh.
+
+   ```
+   # set umask 0177 for the saved key file
+   $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> -m 0177 <keyname>
+   ```
+
 1. Edit `sample-ssm.conf`.
 
     Replace the values wrapped by '<>' with your prefered.
 
-    ```
+    ```ini
     "KeyPairName=<your_aws_ec2_key_pair_name>"
     "SSMDomain=<vpn-admin.yourdomain.com>"
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
@@ -206,11 +222,9 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
     If going to create a Shadowsocks node along with the manager node, use `sample-ssm-and-ssn-0.conf` rather than `sample-ssm.conf`. And following settings need to be handled.
 
-    ```
+    ```ini
     "SSDomain=<vpn.yourdomain.com>"
     ```
-
-1. Active your first AWS account profile.
 
 1. Create the manager stack.
 
@@ -237,24 +251,26 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
 1. Verify the manage stack deployment.
 
-    Open your browser, visit `http://<PUBLIC_IP>/admin`, a login
-    screen should show up.
+   Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
 
-    Log in with the default username and password if you didn't change
-    it in sample conf file.
+   Log in with the default username and password if you didn't change it in sample conf file.
 
-    ```
-    "SSMAdminUsername=admin"
-    "SSMAdminPassword=passw0rd"
-    ```
+   ```ini
+   "SSMAdminUsername=admin"
+   "SSMAdminPassword=passw0rd"
+   ```
 
 #### Create the Node Stack
+
+1. Active your second AWS profile and create EC2 key pair.
+
+    Refer to the steps of  creating manage node.
 
 1. Edit `sample-ssn-1.conf`.
 
     Set below values by the output of the manager stack.
 
-    ```
+    ```ini
     "VpcPeerAccepterVpcId=<your_accepter_vpc_id>"
     "VpcPeerAccepterRoleArn=<your_rolearn_of_accepter_stack>"
     "VpcPeerAccepterSqsQueueUrl=<your_sqs_queue_url_of_accepter_stack>"
@@ -262,15 +278,13 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
     Replace the values wrapped by '<>' with your prefered.
 
-    ```
+    ```ini
     "KeyPairName=<your_aws_ec2_key_pair_name>"
     "VpcPeerAccepterRegion=<your_accepter_region>"
     "VpcPeerAccepterAccountId=<your_aws_account_id_of_owner_of_accepter>"
     ```
 
     Change any other settings as you want.
-
-1. Active your sencond AWS profile.
 
 1. Create the node stack.
 
@@ -308,7 +322,7 @@ Node`, add a Shadowsocks node for each node stack you have created.
     property `SHADOWSOCKS MANAGERS › INTERFACE` should choose
     `Private` from the list since following setting is set in the conf file.
 
-    ```
+    ```ini
     "SSManagerInterface=2" # 1: Localhost, 2: Private, 3: Public.
     ```
 
@@ -326,14 +340,14 @@ Use your XL2TPD client to connect to the service.
 
 With macOS High Sierra, you can choose the built-in XL2TPD client:
 
-```
+```ini
 Interface: VPN
 VPN Type: L2TP over IPSec
 ```
 
 The default credentials defined in the conf file is:
 
-```
+```ini
 "L2TPUsername=vpnuser"
 "L2TPPassword=passw0rd"
 "L2TPSharedKey=SharedSecret"
