@@ -396,7 +396,7 @@
                     " -d timeout=", {"Ref": "SSTimeout"},
                     " -d fastopen=", {"Ref": "SSFastopen"},
                     " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/ssmanager/\"\n"
-                  ]]}, ""]},
+                  ]]}, ""]}
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
@@ -424,7 +424,7 @@
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
                   "# restart to let Django aware EIP.\n",
                   "reboot\n"
-                ]]}, ""]},
+                ]]}, ""]}
               ]
             ]
           }
