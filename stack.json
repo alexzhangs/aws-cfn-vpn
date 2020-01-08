@@ -457,6 +457,91 @@
           "Timeout": "PT8M"
         }
       },
+    "LambdaSnsTopicSubscriberExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": ["lambda.amazonaws.com"]},
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Path": "/"
+      }
+    },
+    "LambdaSnsTopicSubscriber": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "Description": "Receive AWS Config events through SNS, and update Domain, Node and SSManager in shadowsocks-manager.",
+        "Code": {
+          "S3Bucket": {"Ref": "S3BucketForLambdaSnsTopicSubscriber"},
+          "S3Key": {"Ref": "S3KeyForLambdaSnsTopicSubscriber"}
+        },
+        "Environment": {
+          "Variables": {
+            "SSM_DOMAIN": {"Ref": "SSMDomain"},
+            "SSM_PORT": {"Ref": "SSMPort"},
+            "SSM_ADMIN_USERNAME": {"Ref": "SSMAdminUsername"},
+            "SSM_ADMIN_PASSWORD": {"Ref": "SSMAdminPassword"}
+          }
+        },
+        "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
+        "Runtime": "python2.7",
+        "Timeout": "15",
+        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
+      }
+    },
+    "LambdaSnsTopicSubscriberInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "FunctionName": {"Fn::GetAtt": ["LambdaSnsTopicSubscriber", "Arn"]},
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": {"Ref": "SnsTopicForConfig"}
+      }
+    },
+    "SnsTopicForConfig": {
+      "Type": "AWS::SNS::Topic",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "TopicName": {"Fn::Sub": "${AWS::StackName}-config-topic"},
+        "Subscription": [
+          {
+            "Endpoint": {"Fn::GetAtt": ["LambdaSnsTopicSubscriber", "Arn"]},
+            "Protocol": "lambda"
+          }
+        ]
+      }
+    },
+    "SnsTopicPolicyForConfig": {
+      "Type" : "AWS::SNS::TopicPolicy",
+      "Condition": "EnableSSM",
+      "Properties" : {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"AWS": "*"},
+              "Action": "sns:Publish",
+              "Resource": {"Ref": "SnsTopicForConfig"}
+            }
+          ]
+        },
+        "Topics": [{"Ref": "SnsTopicForConfig"}]
+      }
+    },
     "S3BucketForConfig": {
       "Type": "AWS::S3::Bucket",
       "Condition": "EnableSSN",
@@ -896,6 +981,16 @@
       "Type": "String",
       "Default": "",
       "Description": "VPC stack template URL, must be an AWS S3 URL."
+    },
+    "S3BucketForLambdaSnsTopicSubscriber": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 bucket name for LambdaSnsTopicSubscriber."
+    },
+    "S3KeyForLambdaSnsTopicSubscriber": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 key for LambdaSnsTopicSubscriber."
     }
   },
   "Mappings": {
