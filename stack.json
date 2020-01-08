@@ -384,20 +384,12 @@
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
                   " -e '", {"Ref": "SSMAdminEmail"}, "'",
-                  " -t '", {"Ref": "SSMTimeZone"}, "'\n",
+                  " -t '", {"Ref": "SSMTimeZone"}, "'",
+                  " -r '", {"Ref": "SSPortBegin"}, "'",
+                  " -R '", {"Ref": "SSPortEnd"}, "'\n",
 
                   "supervisorctl reload\n",
-                  "service nginx reload\n",
-
-                  "# sleep 1 minute to wait uWSGI to start\n",
-                  "sleep 60\n",
-
-                  "curl -X PUT",
-                  " -u '", {"Ref": "SSMAdminUsername"}, ":", {"Ref": "SSMAdminPassword"}, "'",
-                  " -d port_begin=", {"Ref": "SSPortBegin"},
-                  " -d port_end=", {"Ref": "SSPortEnd"},
-                  " --url \"http://localhost:", {"Ref": "SSMPort"}, "/shadowsocks/config/1/\"\n",
-
+                  "service nginx reload\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
