@@ -284,6 +284,37 @@
               "Ref": "NS"
             }
           }
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "Domain",
+              "Value": {"Fn::Join": ["", [
+                "{",
+                "\"name\":\"", {"Ref": "SSDomain"},
+                "\",\"nameserver\":\"", {"Ref": "SSDomainNameServer"},
+                "\",\"user\":\"", {"Ref": "SSDomainUsername"},
+                "\",\"credential\":\"", {"Ref": "SSDomainCredential"},
+                "\"}"
+              ]]}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "SSManager",
+              "Value": {"Fn::Join": ["", [
+                "{",
+                "\"interface\":\"", {"Ref": "SSManagerInterface"},
+                "\",\"port\":\"", {"Ref": "SSManagerPort"},
+                "\",\"encrypt\":\"", {"Ref": "SSEncrypt"},
+                "\",\"timeout\":\"", {"Ref": "SSTimeout"},
+                "\",\"fastopen\":\"", {"Ref": "SSFastopen"},
+                "\"}"
+              ]]}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]}
         ],
         "UserData": {
           "Fn::Base64": {
@@ -753,6 +784,21 @@
       "Type": "String",
       "Default": "",
       "Description": "Domain name resolved to Shadowsocks server. Example: vpn.yourdomain.com"
+    },
+    "SSDomainNameServer": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Nameserver for the domain. Supported values: ['name.com']."
+    },
+    "SSDomainUsername": {
+      "Type": "String",
+      "Default": "",
+      "Description": "User identity for the Nameserver API service."
+    },
+    "SSDomainCredential": {
+      "Type": "String",
+      "Default": "",
+      "Description": "User credential/token for the Nameserver API service."
     },
     "SSManagerInterface": {
       "Type": "String",
