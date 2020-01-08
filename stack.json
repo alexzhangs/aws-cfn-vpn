@@ -472,6 +472,92 @@
         }
       }
     },
+    "LambdaCleanBucketOnDeleteExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": ["lambda.amazonaws.com"]},
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "default",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket",
+                    "s3:GetObject",
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": [
+                    {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}"},
+                    {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}/*"}
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "LambdaCleanBucketOnDelete": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "Description": "Clean S3 Bucket on stack deletion.",
+        "Code": { "ZipFile": { "Fn::Join": [ "\n", [
+          "#!/usr/bin/env python",
+          "",
+          "from __future__ import print_function",
+          "",
+          "import boto3",
+          "import cfnresponse",
+          "",
+          "print('Loading function')",
+          "",
+          "def lambda_handler(event, context):",
+          "    try:",
+          "        bucket = event['ResourceProperties']['BucketName']",
+          "        requesttype = event['RequestType']",
+          "",
+          "        print('request type: {}, bucket: {}'.format(requesttype, bucket))",
+          "        if requesttype == 'Delete':",
+          "            s3 = boto3.resource('s3')",
+          "            bucket = s3.Bucket(bucket)",
+          "            for obj in bucket.objects.filter():",
+          "                s3.Object(bucket.name, obj.key).delete()",
+          "",
+          "        cfnresponse.send(event, context, cfnresponse.SUCCESS, {})",
+          "    except Exception as e:",
+          "        print(e)",
+          "        cfnresponse.send(event, context, cfnresponse.FAILED, {'error': str(e)})"
+        ] ] } },
+        "Handler": "index.lambda_handler",
+        "Runtime": "python2.7",
+        "Timeout": "15",
+        "Role": {"Fn::GetAtt": ["LambdaCleanBucketOnDeleteExecutionRole", "Arn"]}
+      }
+    },
+    "CleanBucketOnDelete": {
+      "Type": "AWS::CloudFormation::CustomResource",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "ServiceToken": {"Fn::GetAtt": ["LambdaCleanBucketOnDelete", "Arn"]},
+        "BucketName": {"Ref": "S3BucketForConfig"}
+      }
+    },
     "AwsServiceRoleForConfig": {
       "Type": "AWS::IAM::ServiceLinkedRole",
       "Condition": "EnableSSN",
