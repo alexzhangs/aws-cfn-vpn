@@ -7,17 +7,8 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcStackTemplateURL"},
         "Parameters": {
-          "VpcCidrBlock": {
-            "Ref": "VpcCidrBlock"
-          },
-          "SubnetCidrBlocks": {
-            "Fn::Join": [
-              ",",
-              {
-                "Ref": "SubnetCidrBlocks"
-              }
-            ]
-          }
+          "VpcCidrBlock": {"Ref": "VpcCidrBlock"},
+          "SubnetCidrBlocks": {"Fn::Join": [",", {"Ref": "SubnetCidrBlocks"}]}
         },
         "TimeoutInMinutes": "2"
       }
@@ -28,12 +19,7 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerAccepterStackTemplateURL"},
         "Parameters": {
-          "RouteTableId": {
-            "Fn::GetAtt": [
-              "VpcStack",
-              "Outputs.PublicRouteTable"
-            ]
-          }
+          "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]}
         },
         "TimeoutInMinutes": "2"
       }
@@ -44,39 +30,15 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerRequesterStackTemplateURL"},
         "Parameters": {
-          "VpcId": {
-            "Fn::GetAtt": [
-              "VpcStack",
-              "Outputs.Vpc"
-            ]
-          },
-          "CidrBlock": {
-            "Ref": "VpcCidrBlock"
-          },
-          "RouteTableId": {
-            "Fn::GetAtt": [
-              "VpcStack",
-              "Outputs.PublicRouteTable"
-            ]
-          },
-          "PeeringVpcId": {
-            "Ref": "VpcPeerAccepterVpcId"
-          },
-          "PeeringRegion": {
-            "Ref": "VpcPeerAccepterRegion"
-          },
-          "PeeringAccountId": {
-            "Ref": "VpcPeerAccepterAccountId"
-          },
-          "PeeringRoleArn": {
-            "Ref": "VpcPeerAccepterRoleArn"
-          },
-          "PeeringCidrBlock": {
-            "Ref": "VpcPeerAccepterCidrBlock"
-          },
-          "PeeringSqsQueueUrl": {
-            "Ref": "VpcPeerAccepterSqsQueueUrl"
-          }
+          "VpcId": {"Fn::GetAtt": ["VpcStack", "Outputs.Vpc"]},
+          "CidrBlock": {"Ref": "VpcCidrBlock"},
+          "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]},
+          "PeeringVpcId": {"Ref": "VpcPeerAccepterVpcId"},
+          "PeeringRegion": {"Ref": "VpcPeerAccepterRegion"},
+          "PeeringAccountId": {"Ref": "VpcPeerAccepterAccountId"},
+          "PeeringRoleArn": {"Ref": "VpcPeerAccepterRoleArn"},
+          "PeeringCidrBlock": {"Ref": "VpcPeerAccepterCidrBlock"},
+          "PeeringSqsQueueUrl": {"Ref": "VpcPeerAccepterSqsQueueUrl"}
         },
         "TimeoutInMinutes": "3"
       }
@@ -85,12 +47,7 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "VPN server security group",
-        "VpcId": {
-          "Fn::GetAtt": [
-            "VpcStack",
-            "Outputs.Vpc"
-          ]
-        },
+        "VpcId": {"Fn::GetAtt": ["VpcStack", "Outputs.Vpc"]},
         "SecurityGroupIngress" : [
           {
             "IpProtocol": "tcp",
@@ -115,12 +72,7 @@
         "FromPort": 500,
         "ToPort": 500,
         "CidrIp": "0.0.0.0/0",
-        "GroupId": {
-          "Fn::GetAtt": [
-            "VPNServerSG",
-            "GroupId"
-          ]
-        }
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "L2TPNATIngress": {
@@ -131,12 +83,7 @@
         "FromPort": 4500,
         "ToPort": 4500,
         "CidrIp": "0.0.0.0/0",
-        "GroupId": {
-          "Fn::GetAtt": [
-            "VPNServerSG",
-            "GroupId"
-          ]
-        }
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "SSTCPIngress": {
@@ -147,12 +94,7 @@
         "FromPort": {"Ref": "SSPortBegin"},
         "ToPort": {"Ref": "SSPortEnd"},
         "CidrIp": "0.0.0.0/0",
-        "GroupId": {
-          "Fn::GetAtt": [
-            "VPNServerSG",
-            "GroupId"
-          ]
-        }
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "SSUDPIngress": {
@@ -163,12 +105,7 @@
         "FromPort": {"Ref": "SSPortBegin"},
         "ToPort": {"Ref": "SSPortEnd"},
         "CidrIp": "0.0.0.0/0",
-        "GroupId": {
-          "Fn::GetAtt": [
-            "VPNServerSG",
-            "GroupId"
-          ]
-        }
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "SSManagerIngress": {
@@ -179,12 +116,7 @@
         "FromPort": {"Ref": "SSManagerPort"},
         "ToPort": {"Ref": "SSManagerPort"},
         "CidrIp": "0.0.0.0/0",
-        "GroupId": {
-          "Fn::GetAtt": [
-            "VPNServerSG",
-            "GroupId"
-          ]
-        }
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "SSMWebIngress": {
@@ -195,54 +127,24 @@
         "FromPort": {"Ref": "SSMPort"},
         "ToPort": {"Ref": "SSMPort"},
         "CidrIp": "0.0.0.0/0",
-        "GroupId": {
-          "Fn::GetAtt": [
-            "VPNServerSG",
-            "GroupId"
-          ]
-        }
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "EIP": {
       "Type": "AWS::EC2::EIP",
       "Properties": {
-        "InstanceId": {
-          "Ref": "VPNServerInstance"
-        }
+        "InstanceId": {"Ref": "VPNServerInstance"}
       }
     },
     "VPNServerInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": {
-          "Fn::FindInMap": [
-            "RegionMap",
-            {
-              "Ref": "AWS::Region"
-            },
-            "AMI"
-          ]
-        },
-        "InstanceType": {
-          "Ref": "InstanceType"
-        },
-        "KeyName": {
-          "Ref": "KeyPairName"
-        },
-        "Monitoring": {
-          "Ref": "Monitoring"
-        },
-        "SubnetId": {
-          "Fn::GetAtt": [
-            "VpcStack",
-            "Outputs.PublicSubnet01"
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "VPNServerSG"
-          }
-        ],
+        "ImageId": {"Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "AMI"]},
+        "InstanceType": {"Ref": "InstanceType"},
+        "KeyName": {"Ref": "KeyPairName"},
+        "Monitoring": {"Ref": "Monitoring"},
+        "SubnetId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicSubnet01"]},
+        "SecurityGroupIds": [{"Ref": "VPNServerSG"}],
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/xvda",
@@ -351,9 +253,9 @@
 
                   "bash shadowsocks-manager/install.sh",
                   " -n '", {"Fn::If": ["SSMDomainIsNotNull", {"Ref": "SSMDomain"},
-                                        {"Fn::If": ["SSDomainIsNotNull", {"Ref": "SSDomain"},
-                                                    ""]}
-                                       ]}, "'",
+                                       {"Fn::If": ["SSDomainIsNotNull", {"Ref": "SSDomain"},
+                                                   ""]}
+                                      ]}, "'",
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
                   " -e '", {"Ref": "SSMAdminEmail"}, "'",
@@ -1026,59 +928,31 @@
   },
   "Outputs": {
     "VpcId": {
-      "Value": {
-        "Fn::GetAtt": [
-          "VpcStack",
-          "Outputs.Vpc"
-        ]
-      }
+      "Value": {"Fn::GetAtt": ["VpcStack", "Outputs.Vpc"]}
+    },
     "SnsTopicArn": {
       "Condition": "EnableSSM",
       "Value": {"Ref": "SnsTopicForConfig"}
     },
     "IamPeerRoleArn": {
       "Condition": "EnableVpcPeerAccepter",
-      "Value": {
-        "Fn::GetAtt": [
-          "VpcPeerAccepterStack",
-          "Outputs.IamPeerRoleArn"
-        ]
-      }
+      "Value": {"Fn::GetAtt": ["VpcPeerAccepterStack", "Outputs.IamPeerRoleArn"]}
     },
     "VpcPeerAccepterSqsQueueUrl": {
       "Condition": "EnableVpcPeerAccepter",
-      "Value": {
-        "Fn::GetAtt": [
-          "VpcPeerAccepterStack",
-          "Outputs.SqsPeerRouteQueueUrl"
-        ]
-      }
+      "Value": {"Fn::GetAtt": ["VpcPeerAccepterStack", "Outputs.SqsPeerRouteQueueUrl"]}
     },
     "SecurityGroupId": {
-      "Value": {
-        "Ref": "VPNServerSG"
-      }
+      "Value": {"Ref": "VPNServerSG"}
     },
     "InstanceId": {
-      "Value": {
-        "Ref": "VPNServerInstance"
-      }
+      "Value": {"Ref": "VPNServerInstance"}
     },
     "PublicIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "VPNServerInstance",
-          "PublicIp"
-        ]
-      }
+      "Value": {"Fn::GetAtt": ["VPNServerInstance", "PublicIp"]}
     },
     "PrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "VPNServerInstance",
-          "PrivateIp"
-        ]
-      }
+      "Value": {"Fn::GetAtt": ["VPNServerInstance", "PrivateIp"]}
     }
   }
 }
