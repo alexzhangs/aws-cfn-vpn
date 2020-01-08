@@ -222,7 +222,7 @@
                   " -f '", {"Ref": "SSFastopen"}, "'",
                   " -s \"", {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
                                        {"Fn::If": ["SSMIFPrivate", "$private_ip",
-                                                   {"Fn::If": ["SSMIFPublic", "$public_ip", ""]}
+                                                   {"Fn::If": ["SSMIFPublic", "0.0.0.0", ""]}
                                                   ]}
                                        ]}, "\"",
                   " -p '", {"Ref": "SSManagerPort"}, "'\n"
