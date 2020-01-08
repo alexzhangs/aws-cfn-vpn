@@ -7,9 +7,6 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcStackTemplateURL"},
         "Parameters": {
-          "NS": {
-            "Ref": "NS"
-          },
           "VpcCidrBlock": {
             "Ref": "VpcCidrBlock"
           },
@@ -31,12 +28,6 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerAccepterStackTemplateURL"},
         "Parameters": {
-          "NS": {
-            "Ref": "NS"
-          },
-          "NSLowerCase": {
-            "Ref": "NSLowerCase"
-          },
           "RouteTableId": {
             "Fn::GetAtt": [
               "VpcStack",
@@ -53,12 +44,6 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerRequesterStackTemplateURL"},
         "Parameters": {
-          "NS": {
-            "Ref": "NS"
-          },
-          "NSLowerCase": {
-            "Ref": "NSLowerCase"
-          },
           "VpcId": {
             "Fn::GetAtt": [
               "VpcStack",
@@ -117,17 +102,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Ref": "NS"
-                  },
-                  "VPNServerSG"
-                ]
-              ]
-            }
+            "Value": {"Fn::Sub": "${AWS::StackName}-VPNServerSG"}
           }
         ]
       }
@@ -280,10 +255,8 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": {
-              "Ref": "NS"
-            }
-          }
+            "Value": {"Ref": "AWS::StackName"}
+          },
           {"Fn::If": [
             "EnableSSN",
             {
@@ -705,16 +678,6 @@
     }
   },
   "Parameters": {
-    "NS": {
-      "Type": "String",
-      "Default": "Foo",
-      "Description": "Enter a Name Space for Stack. Default is 'Foo'."
-    },
-    "NSLowerCase": {
-      "Type": "String",
-      "Default": "foo",
-      "Description": "Lower case of value of NS. Default is 'foo'."
-    },
     "VpcCidrBlock": {
       "Type": "String",
       "Default": "10.0.0.0/16",
