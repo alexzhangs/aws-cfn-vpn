@@ -303,6 +303,11 @@
           "Timeout": "PT8M"
         }
       },
+      "DependsOn": [
+        "ConfigRecorder",
+        "ConfigDeliveryChannel"
+      ]
+    },
     "LambdaSnsTopicSubscriberExecutionRole": {
       "Type": "AWS::IAM::Role",
       "Condition": "EnableSSM",
