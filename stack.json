@@ -426,6 +426,77 @@
           "Timeout": "PT8M"
         }
       },
+    "S3BucketForConfig": {
+      "Type": "AWS::S3::Bucket",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "BucketName": {"Fn::Sub": "${AWS::StackName}-config-bucket"}
+      },
+      "DeletionPolicy": "Delete"
+    },
+    "S3BucketPolicyForConfig": {
+      "Type" : "AWS::S3::BucketPolicy",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "Bucket": {"Ref": "S3BucketForConfig"},
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement":[
+            {
+              "Sid": "AWSConfigBucketPermissionsCheck",
+              "Effect": "Allow",
+              "Principal": {"Service": ["config.amazonaws.com"]},
+              "Action": "s3:GetBucketAcl",
+              "Resource": {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}"}
+            },
+            {
+              "Sid": "AWSConfigBucketExistenceCheck",
+              "Effect": "Allow",
+              "Principal": {"Service": ["config.amazonaws.com"]},
+              "Action": "s3:ListBucket",
+              "Resource": {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}"}
+            },
+            {
+              "Sid": "AWSConfigBucketDelivery",
+              "Effect": "Allow",
+              "Principal": {"Service": ["config.amazonaws.com"]},
+              "Action": "s3:PutObject",
+              "Resource": {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}/*"},
+              "Condition": {
+                "StringEquals": {
+                  "s3:x-amz-acl": "bucket-owner-full-control"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "AwsServiceRoleForConfig": {
+      "Type": "AWS::IAM::ServiceLinkedRole",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "AWSServiceName": "config.amazonaws.com"
+      }
+    },
+    "ConfigRecorder": {
+      "Type": "AWS::Config::ConfigurationRecorder",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "Name": "default",
+        "RecordingGroup": {
+          "ResourceTypes": ["AWS::EC2::Instance"]
+        },
+        "RoleARN": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/config.amazonaws.com/${AwsServiceRoleForConfig}"}
+      }
+    },
+    "ConfigDeliveryChannel": {
+      "Type": "AWS::Config::DeliveryChannel",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "S3BucketName": {"Ref": "S3BucketForConfig"},
+        "SnsTopicARN": {"Ref": "SnsTopicArn"}
+      }
     }
   },
   "Conditions": {
@@ -562,6 +633,11 @@
       "Default": "1",
       "AllowedValues": ["0", "1"],
       "Description": "Whether to install Shadowsocks server. 0: no, 1: yes. Default is '1'."
+    },
+    "SnsTopicArn": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Amazon Resource Name (ARN) of SNS topic."
     },
     "EnableSSM": {
       "Type": "String",
@@ -795,6 +871,9 @@
           "Outputs.Vpc"
         ]
       }
+    "SnsTopicArn": {
+      "Condition": "EnableSSM",
+      "Value": {"Ref": "SnsTopicForConfig"}
     },
     "IamPeerRoleArn": {
       "Condition": "EnableVpcPeerAccepter",
