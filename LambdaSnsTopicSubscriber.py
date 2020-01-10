@@ -37,10 +37,7 @@ def lambda_handler(event, context):
         node = Node(name=node_name)
         node.public_ip = ccnm.resource['publicIpAddress']
         node.private_ip = ccnm.resource['privateIpAddress']
-        # get the long name of AWS region
-        client = boto3.client('ssm')
-        response = client.get_parameter(Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=ccnm.json['configurationItem']['awsRegion']))
-        node.location = response['Parameter']['Value']
+        node.location = get_long_region_name(ccnm.json['configurationItem']['awsRegion'])
         node.is_active = (ccnm.resource['state']['name'] == 'running')
     else:
         print('There is no tag with name "Name" on the instance. Skip to update Domain, Node and SSManager in shadowsocks-manager.')
@@ -107,6 +104,12 @@ def lambda_handler(event, context):
         "domain": domain.serialize() if domain else None,
         "ssmanager": ssmanager.serialize() if ssmanager else None
     }
+
+def get_long_region_name(region):
+    # get the long name of AWS region
+    client = boto3.client('ssm')
+    response = client.get_parameter(Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
+    return response['Parameter']['Value']
 
 class CCNM(object):
     # Configuration Item Change Notification Message
@@ -239,16 +242,16 @@ class Base(DRF):
         return data
 
 class Domain(Base):
-    
+
     class Meta(Base.Meta):
         api_path = '/domain/'
 
 class Node(Base):
-    
+
     class Meta(Base.Meta):
         api_path = '/shadowsocks/node/'
 
 class SSManager(Base):
-    
+
     class Meta(Base.Meta):
         api_path = '/shadowsocks/ssmanager/'
