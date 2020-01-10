@@ -111,6 +111,21 @@ def get_long_region_name(region):
     response = client.get_parameter(Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
     return response['Parameter']['Value']
 
+def get_ssm_public_ip():
+    ec2 = boto3.resource('ec2')
+    instances = ec2.instances.filter(Filters=[
+        {
+            'Name': 'tag:aws:cloudformation:stack-id',
+            'Values': [os.getenv('SSM_STACK_ID')]
+        },
+        {
+            'Name': 'tag:aws:cloudformation:logical-id',
+            'Values': [os.getenv('SSM_INSTANCE_LOGICAL_ID')]
+        }
+    ])
+    for instance in instances:
+        return instance.public_ip_address
+
 class CCNM(object):
     # Configuration Item Change Notification Message
 
@@ -146,7 +161,8 @@ class CCNM(object):
 class DRF(object):
 
     class Meta:
-        api_baseurl = 'http://' + os.getenv('SSM_DOMAIN') + ':' + os.getenv('SSM_PORT')
+        api_host = get_ssm_public_ip() or os.getenv('SSM_DOMAIN')
+        api_baseurl = 'http://' + api_host + ':' + os.getenv('SSM_PORT')
         api_loginurl = api_baseurl + '/admin/login/'
         api_admin_username = os.getenv('SSM_ADMIN_USERNAME')
         api_admin_password = os.getenv('SSM_ADMIN_PASSWORD')
