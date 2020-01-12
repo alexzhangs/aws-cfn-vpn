@@ -341,6 +341,8 @@
         },
         "Environment": {
           "Variables": {
+            "SSM_STACK_ID": {"Ref": "AWS::StackId"},
+            "SSM_INSTANCE_LOGICAL_ID": "VPNServerInstance",
             "SSM_DOMAIN": {"Ref": "SSMDomain"},
             "SSM_PORT": {"Ref": "SSMPort"},
             "SSM_ADMIN_USERNAME": {"Ref": "SSMAdminUsername"},
