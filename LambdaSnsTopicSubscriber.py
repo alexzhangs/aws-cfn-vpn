@@ -36,6 +36,9 @@ def lambda_handler(event, context):
         os.getenv('SSM_STACK_ID'),
         os.getenv('SSM_INSTANCE_LOGICAL_ID')
     )
+    print('wait here, the CREATE notification of config may come earlier.')
+    ec2.wait_until_running()
+    print('go on now.')
 
     BaseAPI.backend = Backend(
         host=ec2.public_ip_address or os.getenv('SSM_DOMAIN'),
