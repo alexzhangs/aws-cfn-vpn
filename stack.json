@@ -323,8 +323,9 @@
           ]
         },
         "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
           "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
-          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+          "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
         ],
         "Path": "/"
       }
