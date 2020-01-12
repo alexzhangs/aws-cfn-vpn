@@ -32,6 +32,18 @@ def lambda_handler(event, context):
         print('Skip none VPN instance.')
         return
 
+    ec2 = Ec2Instance(
+        os.getenv('SSM_STACK_ID'),
+        os.getenv('SSM_INSTANCE_LOGICAL_ID')
+    )
+
+    BaseAPI.backend = Backend(
+        host=ec2.public_ip_address or os.getenv('SSM_DOMAIN'),
+        port=os.getenv('SSM_PORT'),
+        user=os.getenv('SSM_ADMIN_USERNAME'),
+        password=os.getenv('SSM_ADMIN_PASSWORD')
+    )
+
     node_name = ccnm.get_tag_value(name='Name')
     if node_name:
         node = Node(name=node_name)
@@ -111,20 +123,21 @@ def get_long_region_name(region):
     response = client.get_parameter(Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
     return response['Parameter']['Value']
 
-def get_ssm_public_ip():
-    ec2 = boto3.resource('ec2')
-    instances = ec2.instances.filter(Filters=[
-        {
-            'Name': 'tag:aws:cloudformation:stack-id',
-            'Values': [os.getenv('SSM_STACK_ID')]
-        },
-        {
-            'Name': 'tag:aws:cloudformation:logical-id',
-            'Values': [os.getenv('SSM_INSTANCE_LOGICAL_ID')]
-        }
-    ])
-    for instance in instances:
-        return instance.public_ip_address
+class Ec2Instance(object):
+    def __new__(self, stack_id, logical_id):
+        ec2 = boto3.resource('ec2')
+        instances = ec2.instances.filter(Filters=[
+            {
+                'Name': 'tag:aws:cloudformation:stack-id',
+                'Values': [stack_id]
+            },
+            {
+                'Name': 'tag:aws:cloudformation:logical-id',
+                'Values': [logical_id]
+            }
+        ])
+        for instance in instances:
+            return instance
 
 class CCNM(object):
     # Configuration Item Change Notification Message
@@ -158,76 +171,80 @@ class CCNM(object):
     def is_property_changed(self, name):
         return self.json['configurationItemDiff']['changedProperties'].get(name, {}).get('changeType') == 'UPDATE'
 
-class DRF(object):
+class Backend(object):
 
-    class Meta:
-        api_host = get_ssm_public_ip() or os.getenv('SSM_DOMAIN')
-        api_baseurl = 'http://' + api_host + ':' + os.getenv('SSM_PORT')
-        api_loginurl = api_baseurl + '/admin/login/'
-        api_admin_username = os.getenv('SSM_ADMIN_USERNAME')
-        api_admin_password = os.getenv('SSM_ADMIN_PASSWORD')
-        api_path = None
-
-    session = None
-
-    @classmethod
-    def authenticate(cls):
-        print('authenticating')
-        session = requests.session()
-        response = session.get(cls.Meta.api_loginurl)
-        if response:
-            csrftoken = response.cookies['csrftoken']
-        else:
-            print('{}: failed to get login url: {}'.format(str(response), cls.Meta.api_loginurl))
-            return response
-        response = session.post(
-            cls.Meta.api_loginurl,
-            data={
-                'username': cls.Meta.api_admin_username,
-                'password': cls.Meta.api_admin_password,
-                'csrfmiddlewaretoken': csrftoken,
-                'next': '/'
-            }
+    def __init__(self, host, port=80, schema='http', user=None, password=None):
+        self.url = '{schema}://{host}:{port}'.format(
+            host=host,
+            port=port,
+            schema=schema
         )
+        self.host = host
+        self.port = port
+        self.schema = schema
+        self.user = user
+        self.password = password
+        self.session = None
+        self.authenticated = False
+        self.csrftoken = None
+
+    def call(self, *args, **kwargs):
+        if self.csrftoken and 'data' in kwargs:
+            kwargs['data']['csrfmiddlewaretoken'] = self.csrftoken
+            kwargs.update({'headers': {'X-CSRFToken': self.csrftoken}})
+        print(args, kwargs)
+        response = self.session.request(*args, **kwargs)
         if response:
-            cls.session = session
-        else:
-            print('{}: failed to authenticate: {}'.format(str(response), cls.Meta.api_loginurl))
+            self.csrftoken = self.session.cookies.get('csrftoken', None)
+        print('{}: {}'.format(str(response), response.text.replace('\n', '')))
         return response
 
+    def authenticate(self, url):
+        print('authenticating')
+        self.session = requests.session()
+        response = self.call('get', url)
+        if response:
+            response = self.call(
+                'post',
+                url,
+                data={
+                    'username': self.user,
+                    'password': self.password,
+                    'next': '/'
+                },
+                timeout=5
+            )
+            if response:
+                self.authenticated = True
+        return response
+
+class BaseAPI(object):
+    path = '/'
+    auth_path = None
+    backend = None
+
     @classmethod
-    def get_api_url(cls, id=None):
-        url = cls.Meta.api_baseurl + cls.Meta.api_path
+    def get_url(cls, id=None, auth=False):
+        url = cls.backend.url + (cls.auth_path if auth else cls.path)
         if id:
-            return '{}{}/'.format(url, id)
+            return url + '{}/'.format(id)
         else:
             return url
 
     @classmethod
-    def call(cls, method, url, params=None, data=None, headers={}):
-        if not cls.session:
-            if not cls.authenticate():
+    def call(cls, *args, **kwargs):
+        if cls.auth_path and not cls.backend.authenticated:
+            if not cls.backend.authenticate(cls.get_url(auth=True)):
                 return
 
-        csrftoken = cls.session.cookies.get('csrftoken', None)
-        if csrftoken and data and method in ['post', 'put', 'patch']:
-            data['csrfmiddlewaretoken'] = csrftoken
-            headers['X-CSRFToken'] = csrftoken
+        response = cls.backend.call(*args, **kwargs)
+        if response is not None:
+            return response.json()
 
-        print('{} {}\nInput Data: {}'.format(method.upper(), url, data))
-        response = getattr(cls.session, method)(
-            url,
-            params=params,
-            data=data,
-            headers=headers
-        )
-        print('{}: {}'.format(str(response), response.text))
-        if not response:
-            return
+class BaseModel(object):
 
-        return response.json()
-
-class Base(DRF):
+    class API(BaseAPI):
+        auth_path = '/admin/login/'
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -237,14 +254,16 @@ class Base(DRF):
 
     @classmethod
     def list(cls, **kwargs):
-        result = cls.call('get', cls.get_api_url(), params=kwargs)
-        return [cls(**item) for item in result]
+        result = cls.API.call('get', cls.API.get_url(), params=kwargs)
+        return [cls(**item) for item in result or []]
 
     def save(self, method=None, fields=None):
         if not method:
             method = 'post' if self.id is None else 'put'
-        url = self.get_api_url(self.id)
-        result = self.__class__.call(method, url, data=self.serialize(fields=fields))
+        result = self.API.call(
+            method,
+            self.API.get_url(self.id),
+            data=self.serialize(fields=fields))
         if result:
             self.__dict__.update(result)
 
@@ -257,17 +276,17 @@ class Base(DRF):
                 data[k] = v
         return data
 
-class Domain(Base):
+class Domain(BaseModel):
 
-    class Meta(Base.Meta):
-        api_path = '/domain/'
+    class API(BaseModel.API):
+        path = '/domain/'
 
-class Node(Base):
+class Node(BaseModel):
 
-    class Meta(Base.Meta):
-        api_path = '/shadowsocks/node/'
+    class API(BaseModel.API):
+        path = '/shadowsocks/node/'
 
-class SSManager(Base):
+class SSManager(BaseModel):
 
-    class Meta(Base.Meta):
-        api_path = '/shadowsocks/ssmanager/'
+    class API(BaseModel.API):
+        path = '/shadowsocks/ssmanager/'
