@@ -48,7 +48,7 @@
       "Properties": {
         "GroupDescription": "VPN server security group",
         "VpcId": {"Fn::GetAtt": ["VpcStack", "Outputs.Vpc"]},
-        "SecurityGroupIngress" : [
+        "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
             "FromPort": "22",
@@ -210,10 +210,8 @@
                 "yum install -y git\n",
                 "export PATH=/usr/local/bin:$PATH\n",
 
-                "private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
-                "public_ip=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-
                 {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
+                  "private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
                   "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
 
                   "bash aws-ec2-shadowsocks-libev/install.sh",
@@ -290,8 +288,10 @@
                 " --region ", {"Ref": "AWS::Region"}, "\n",
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
-                  "# restart to let Django aware EIP.\n",
-                  "reboot\n"
+                  "# wait for EIP get ready.\n",
+                  "sleep 60\n",
+                  "# restart services to be aware of the EIP.\n",
+                  "supervisorctl reload\n"
                 ]]}, ""]}
               ]
             ]
@@ -376,9 +376,9 @@
       }
     },
     "SnsTopicPolicyForConfig": {
-      "Type" : "AWS::SNS::TopicPolicy",
+      "Type": "AWS::SNS::TopicPolicy",
       "Condition": "EnableSSM",
-      "Properties" : {
+      "Properties": {
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
@@ -402,7 +402,7 @@
       "DeletionPolicy": "Delete"
     },
     "S3BucketPolicyForConfig": {
-      "Type" : "AWS::S3::BucketPolicy",
+      "Type": "AWS::S3::BucketPolicy",
       "Condition": "EnableSSN",
       "Properties": {
         "Bucket": {"Ref": "S3BucketForConfig"},
