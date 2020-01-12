@@ -189,6 +189,46 @@
               ]]}
             },
             {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSM",
+            {
+              "Key": "ConditionalDependsOn-LambdaSnsTopicSubscriberInvokePermission",
+              "Value": {"Ref": "LambdaSnsTopicSubscriberInvokePermission"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSM",
+            {
+              "Key": "ConditionalDependsOn-SnsTopicPolicyForConfig",
+              "Value": {"Ref": "SnsTopicPolicyForConfig"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "ConditionalDependsOn-S3BucketPolicyForConfig",
+              "Value": {"Ref": "S3BucketPolicyForConfig"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "ConditionalDependsOn-ConfigRecorder",
+              "Value": {"Ref": "ConfigRecorder"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "ConditionalDependsOn-ConfigDeliveryChannel",
+              "Value": {"Ref": "ConfigDeliveryChannel"}
+            },
+            {"Ref": "AWS::NoValue"}
           ]}
         ],
         "UserData": {
@@ -302,11 +342,7 @@
         "ResourceSignal": {
           "Timeout": "PT8M"
         }
-      },
-      "DependsOn": [
-        "ConfigRecorder",
-        "ConfigDeliveryChannel"
-      ]
+      }
     },
     "LambdaSnsTopicSubscriberExecutionRole": {
       "Type": "AWS::IAM::Role",
@@ -551,8 +587,15 @@
       "Condition": "EnableSSN",
       "Properties": {
         "S3BucketName": {"Ref": "S3BucketForConfig"},
-        "SnsTopicARN": {"Ref": "SnsTopicArn"}
-      }
+        "SnsTopicARN": {"Fn::If": [
+          "EnableSSM",
+          {"Ref": "SnsTopicForConfig"},
+          {"Ref": "SnsTopicArn"}
+        ]}
+      },
+      "DependsOn": [
+        "CleanBucketOnDelete"
+      ]
     }
   },
   "Conditions": {
