@@ -2,18 +2,19 @@
 
 AWS CloudFormation Stack for VPN services.
 
-This Repo use AWS CloudFormation to automate the deployment of several
-VPN services, and is trying to make the deployment as easier as possible.
+This Repo use AWS CloudFormation to automate the deployment of Shadowsocks
+and XL2TPD, and is trying to make the deployment as easier as possible.
 
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
-which is a web based node and user management of Shadowsocks.
+which is a web based Shadowsocks management tool for multi user and traffic statistics,
+support multi node, sync IPs to name.com.
 
 Below is the VPN services list:
 
 * Shadowsocks-libev, multi nodes with a center user management is supported by deploying this stack
   multi times.
-* XL2TPD, the user management is saperate from shadowsocks-manager.
+* XL2TPD, the user management is separate from shadowsocks-manager.
 
 This stack leverages several other repoes to achieve the work, below
 gives an overview of the inside dependency structure. All the internal
@@ -46,139 +47,147 @@ CloudFormation compitable tool.
 This template will create an AWS CloudFormation stack, including
 following resources:
 
-* 1 nested VPC stack. For details check [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
+* 1 nested VPC stack.
 
-* 1 nested VPC peer accepter stack,  accepting VPC peer connection request from
-another VPC. For details check
+    For the details check [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
+
+* 1 nested VPC peer accepter stack if set EnableVpcPeerAccepter=1.
+
+    It accepts VPC peer connection request from another VPC. VPC peer
+connection is used to create private network connection between
+manager stack and node stack, to protect the multi-user API from
+opening to public internet.
+
+    For the details check
 [aws-cfn-vpc-accepter](https://github.com/alexzhangs/aws-cfn-vpc-accepter).
 
-* 1 nested VPC peer requester stack, creating and sending VPC peer connection to
-the accepter. For the details  check
+* 1 nested VPC peer requester stack if set EnableVpcPeerRequester=1.
+
+    It sends request to the accepter to create VPC peer connection.
+
+    For the details check
 [aws-cfn-vpc-requester](https://github.com/alexzhangs/aws-cfn-vpc-requester).
 
-* 1 Security Group.
+* 1 EC2 Instance.
+    * Shadowsocks-libev is installed if set EnableSSN=1.
+    * shadowsocks-manager is installed if set EnableSSM=1.
+    * L2TPD is installed if set EnableL2TP=1.
 
-* 1 EC2 instance. Shadowsocks-libev and/or shadowsocks-manager and/or
-L2TPD will be installed depends on your configuration.
-
-For the input parameters and the detail of the template, please check the template
+    For the input parameters and the detail of the template, please check the template
 file.
 
 ### sample-*.conf
 
-`sample-*.conf` is a config file for stack.json, it's used by
-`aws-cfn-deploy` which belongs to an AWS toolkit
-[xsh-lib-aws](https://github.com/alexzhangs/xsh-lib-aws), to automate AWS
+`sample-*.conf` are config files used by `aws-cfn-deploy` to automate AWS
 CloudFormation template deployment.
+
+`aws-cfn-deploy` can be installed from repo [xsh-lib/aws](https://github.com/xsh-lib/aws).
 
 ## Classic Usage
 
-The classic scenario is:
+There are 2 classic deployment methods:
 
-* First, deploy a center stack with shadowsocks-manager
-and XL2TPD enabled.
+1. Deploy a single stack with every inside, including
+shadowsocks-manager, Shadosocks node and XL2TPD.
+There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
 
-* Second, deploy one or more stack with Shadowsocks node enabled
-only. There are 2 different type of deployments you may want to apply:
+1. Deploy at least 2 stacks, one for shadowsocks-manager and XL2TPD,
+one or more for Shadowsocks nodes. Each one needs to be deployed in a
+different AWS account. That allows you to balance network triffic between
+AWS accounts.
+There are 3 sample config files for this.
 
-    1. Deploy multi nodes in the same AWS Region, in different AWS accounts.
-       This method allows you to balance the network traffic between AWS accounts.
-
-    1. Deploy multi nodes in different AWS Regions, either in the same AWS account or in different AWS accounts.
-       This method gives you the ability to access to VPN node in different geography locations.
-
-  You may also combine the 2 methods above together to gain both advantages and still have a single central user management of Shadowsocks, this requires more complex DNS records design.
+    * sample-ssm.conf
+    * sample-ssn-1.conf
+    * sample-ssn-2.conf
 
 ## Domain Name Design
 
-If you are deploying only 1 node for Shadowsocks, shadowsocks-manager
-and XL2TPD, then 1 domain name with 1 DNS record will work for all
-services above.
+There are 3 DNS host names needed for your services:
 
-If you are deploying multi nodes, then you may have to give at least 3
-domain names.
+    1. The domain name pointing to shadowsocks-manager service, such
+    as `admin.ss.yourdomain.com`.
 
-1. With the method 1 above, 3 domain names needed.
+    1. The domain name pointing to XL2TPD services, such as
+    `vpn.yourdomain.com`.
 
-    1. One domain name such as `ss.yourdomain.com` should point to the
-    public IPs of all shadowsocks nodes.
+    1. The domain name pointing to Shadowsocks nodes, such as
+    `ss.yourdomain.com`.
 
-    1. The second domain name such as `admin.ss.yourdomain.com` should
-    point to the public IP of the shadowsocks-manager node.
+If you are deploying a single stack with everything inside, then one
+domain host name will work out.
 
-    1. The third domain name such as `vpn.yourdomain.com` should
-    point to the public IP of the XL2TPD node.
+## Deploy
 
-1. With the method 2 above, 3+ domain name needed.
+### Prepare at local
 
-    You need to give a standalone domain name for each Shadowsocks
-    node, since balancing on different AWS Regions makes no sense.
+Several tools were needed in this deployment, below shows how to get
+them ready.
 
-## Deployment
+1. awscli: Install it from [here](https://aws.amazon.com/cli/).
 
-Two ways to deploy:
+1. [xsh](https://github.com/alexzhangs/xsh): xsh is a bash library framework.
 
-1. Deploy the stack manually with AWS web console or CLI.
-1. Deploy the stack with `aws-cfn-deploy` of AWS toolkit
-[xsh-lib-aws](https://github.com/alexzhangs/xsh-lib-aws).
+```sh
+git clone https://github.com/alexzhangs/xsh
+bash xsh/install.sh
+```
 
-NOTE: In either way, you must create IAM user or role to deploy the
-stack, you can not use AWS root user or its access key to do the
-deployment. Because there is IAM assume role inside the template,
-which assumes an action `ec2:AcceptVpcPeeringConnection` and AWS
-restricts it's can't be assumed by root user.
+1. [xsh-lib/aws](https://github.com/xsh-lib/aws): xsh-lib/aws is a
+library or xsh.
 
-### Manually Deployment
+```bash
+xsh load xsh-lib/aws
+```
 
-You will have to handle the input parameters of the stack, and the
-upload of the templates.
+Note: If you are proceeding without the tools, then you will have to manually
+upload templates and Lambda function to S3, and handle the parameters
+for each nested templates.
 
-### Deploy with `aws-cfn-deploy`
+### Prepare AWS Accounts
 
-This guide shows how to deploy multi Shadowsocks nodes(2) in the
-method 2 above.
+1. Sign up [AWS accounts](https://aws.amanzon.com) if don't have.
 
-TODO: Release `xsh` and `xsh-lib-aws` out.
+You will need more than one account if planning to deploy multi node stacks.
 
-#### Install xsh-lib-aws
+1. Create an IAM user and give it admin permissions in each AWS account.
 
-TODO
-
-#### Install aws-cli
-
-TODO
-
-#### Prepare AWS Accounts
-
-1. Create 3 AWS accounts in the web if don't have.
-
-1. Create IAM user and give admin permissions for each account.
-
-    This can be done with AWS CLI if you already have access key configured for the account, otherwise just use web console.
+    This can be done with AWS CLI if you already have access key
+    configured for the account:
 
     ```sh
     $ aws iam create-user --user-name admin
     $ aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
     ```
 
-1. Create access key for each  IAM user created in last step.
+    Otherwise just use the AWS web console.
 
-    This can be done with AWS CLI if you already have access key configured for the account, otherwise just use web console.
+    NOTE: You must create IAM user or role to deploy the
+    stacks, you can not use AWS `root user` or its access key to do the
+    deployment. Because there is IAM assume role inside the template,
+    which assumes an action `ec2:AcceptVpcPeeringConnection` and AWS
+    restricts it's can't be assumed by root user.
+
+1. Create an access key for each IAM user created in last step.
+
+    This can be done with AWS CLI if you already have access key
+    configured for the account:
 
     ```sh
     $ aws iam create-access-key --user-name admin
     ```
 
-1. Create a profile with the access key created in last step.
+    Otherwise just use the AWS web console.
+
+1. Create a profile for each access key created in last step.
 
    A region is needed to be set in this step.
 
    ```sh
-   $ aws configure --profile=<your_profile>
+   $ aws configure --profile=<your_profile_name>
    ```
 
-
-#### Get the code
+### Get the code
 
 In the same directory:
 
@@ -189,21 +198,18 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 ```
 
-#### Create the Manager Stack
+### Create the Manager Stack
 
+1. Activate your AWS profile.
 
-1. Active your first AWS account profile.
-
-   ```
-   # activate profile for the account
+   ```bash
    $ xsh aws/cfg/activate <your_profile>
    ```
 
-1. Create EC2 key pair and save it to ~/.ssh.
+1. Create an EC2 key pair in AWS and save it to ~/.ssh.
 
-   ```
-   # set umask 0177 for the saved key file
-   $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> -m 0177 <keyname>
+   ```bash
+   $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> -m 0377 <keyname>
    ```
 
 1. Edit `sample-ssm.conf`.
@@ -218,26 +224,12 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
     Change any other settings as you want.
 
-    The conf above is creating a dedicated manager node without Shadowsocks service.
-
-    If going to create a Shadowsocks node along with the manager node, use `sample-ssm-and-ssn-0.conf` rather than `sample-ssm.conf`. And following settings need to be handled.
-
-    ```ini
-    "SSDomain=<vpn.yourdomain.com>"
-    ```
-
 1. Create the manager stack.
 
     Run below command at your local:
 
     ```bash
     $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm.conf
-    ```
-
-    or
-
-    ```bash
-    $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm-and-ssn-0.conf
     ```
 
     Then wait the stack creation complete.
@@ -249,7 +241,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     $ xsh aws/cfn/stack/desc <stack_name>
     ```
 
-1. Verify the manage stack deployment.
+1. Verify the manager stack deployment.
 
    Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
 
@@ -260,11 +252,11 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
    "SSMAdminPassword=passw0rd"
    ```
 
-#### Create the Node Stack
+### Create the Node Stack
 
-1. Active your second AWS profile and create EC2 key pair.
+1. Activate another AWS profile and create EC2 key pair.
 
-    Refer to the steps of  creating manage node.
+    Refer to the steps in the last section.
 
 1. Edit `sample-ssn-1.conf`.
 
@@ -274,11 +266,13 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "VpcPeerAccepterVpcId=<your_accepter_vpc_id>"
     "VpcPeerAccepterRoleArn=<your_rolearn_of_accepter_stack>"
     "VpcPeerAccepterSqsQueueUrl=<your_sqs_queue_url_of_accepter_stack>"
+    "SnsTopicArn=<your_snstopicarn_of_ssm_stack>"
     ```
 
     Replace the values wrapped by '<>' with your prefered.
 
     ```ini
+    "SSDomain=<vpn.yourdomain.com>"
     "KeyPairName=<your_aws_ec2_key_pair_name>"
     "VpcPeerAccepterRegion=<your_accepter_region>"
     "VpcPeerAccepterAccountId=<your_aws_account_id_of_owner_of_accepter>"
@@ -301,38 +295,46 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 
 ## Maintain DNS Records
 
-1. Add the public IPs of all nodes including the manage node as `A
-record`, such as `ss.yourdomain.com`.
+1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
+pointing to the public IP of EC2 Instance of manager stack.
 
-1. Add the public IP of manage node as `A record`, such as `admin.ss.aiview.com`.
+    Use this domain to access to the shadowsocks-manager.
 
-1. Add the public IP of XL2TPD node as `A record`, such as `vpn.aiview.com`.
+1. Create a DNS `A record`, such as `vpn`.yourdomain.com, pointing to the
+public IP of EC2 Instance of manager stack.
+
+    Use this domain to access to the L2TP service.
+
+1. Create a DNS `A record`, such as `ss`.yourdomain.com pointing to
+the public IP of EC2 Instance of node stack.
+
+    If you use `name.com` as your Nameserver and have below settings
+    before to create node stack, then you can skip this step,
+    shadowsocks-manager has taken care of the DNS recorders.
+
+    ```ini
+    "SSDomainNameServer=name.com"
+    "SSDomainUsername=<your_username_of_name.com>"
+    "SSDomainCredential=<your_api_token_of_name.com>"
+    ```
+
+    Use this domain to access to the Shadowsocks service.
 
 ## Configure shadowsocks-manager
 
-### Add the Nodes to shadowsocks-manager
-
-1. Log in the shadowsocks-manager web console back with
-`admin.ss.aiview.com` after the DNS records get effective.
+1. Log in the shadowsocks-manager web console back at
+`http://admin.ss.yourdomain.com/admin` after the DNS records get
+effective.
 
 1. Goto `Home › Shadowsocks › Shadowsocks Nodes › Add Shadowsocks
-Node`, add a Shadowsocks node for each node stack you have created.
+Node`, to check the node list, all node stacks you created should have been
+registered as nodes automatically.
 
-    NOTE: For the Shadowsocks node created with the sample conf files, the
-    property `SHADOWSOCKS MANAGERS › INTERFACE` should choose
-    `Private` from the list since following setting is set in the conf file.
+    Note: The registration is rely on the AWS Config, SNS and Lambda services,
+it takes up to around 15 minutes to capture and delivery the config changes.
 
-    ```ini
-    "SSManagerInterface=2" # 1: Localhost, 2: Private, 3: Public.
-    ```
-
-    NOTE: For the Shadowsocks node in manage stack, you don't need to add it by
-    yourself. It should have been added as a node already.
-
-### What to do next?
-
-Now you are ready to create Shadowsocks accounts in the web console.
-Or import the previously expoted accounts back.
+1. Now you are ready to create Shadowsocks accounts in the web
+   console, or import the previously exported accounts back.
 
 ## Verify XL2TPD services
 
@@ -345,7 +347,7 @@ Interface: VPN
 VPN Type: L2TP over IPSec
 ```
 
-The default credentials defined in the conf file is:
+The default credential defined in the conf file is:
 
 ```ini
 "L2TPUsername=vpnuser"
