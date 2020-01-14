@@ -105,14 +105,14 @@ There are 3 sample config files for this.
 
 There are 3 DNS host names needed for your services:
 
-    1. The domain name pointing to shadowsocks-manager service, such
-    as `admin.ss.yourdomain.com`.
+1. The domain name pointing to shadowsocks-manager service, such
+as `admin.ss.yourdomain.com`.
 
-    1. The domain name pointing to XL2TPD services, such as
-    `vpn.yourdomain.com`.
+1. The domain name pointing to XL2TPD services, such as
+`vpn.yourdomain.com`.
 
-    1. The domain name pointing to Shadowsocks nodes, such as
-    `ss.yourdomain.com`.
+1. The domain name pointing to Shadowsocks nodes, such as
+`ss.yourdomain.com`.
 
 If you are deploying a single stack with everything inside, then one
 domain host name will work out.
@@ -148,7 +148,7 @@ for each nested templates.
 
 1. Sign up [AWS accounts](https://aws.amanzon.com) if don't have.
 
-You will need more than one account if planning to deploy multi node stacks.
+    You will need more than one account if planning to deploy multi node stacks.
 
 1. Create an IAM user and give it admin permissions in each AWS account.
 
@@ -222,7 +222,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
     ```
 
-    Change any other settings as you want.
+    Change any other settings as you wish.
 
 1. Create the manager stack.
 
@@ -278,7 +278,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "VpcPeerAccepterAccountId=<your_aws_account_id_of_owner_of_accepter>"
     ```
 
-    Change any other settings as you want.
+    Change any other settings as you wish.
 
 1. Create the node stack.
 
