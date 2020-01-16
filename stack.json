@@ -133,6 +133,7 @@
     "EIP": {
       "Type": "AWS::EC2::EIP",
       "Properties": {
+        "Domain": {"Ref": "EipDomain"},
         "InstanceId": {"Ref": "VPNServerInstance"}
       }
     },
@@ -701,6 +702,11 @@
       "Default": "10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24, 10.0.3.0/24",
       "Description": "Comma-delimited list of CIDR blocks for subnets. Default is '10.30.0.0/24, 10.30.1.0/24, 10.30.2.0/24, 10.30.3.0/24' (256 IPs each).",
       "ConstraintDescription": "The single CIDR block must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "EipDomain": {
+      "Type": "String",
+      "Default": "vpc",
+      "Description": "Switch the value between '' and 'vpc' to refresh EIP. The EIP assigned out of stack won't be deleted on stack delete. Default is 'vpc'."
     },
     "InstanceType": {
       "Type": "String",
