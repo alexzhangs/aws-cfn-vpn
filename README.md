@@ -59,14 +59,14 @@ manager stack and node stack, to protect the multi-user API from
 opening to public internet.
 
     For the details check
-[aws-cfn-vpc-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
+[aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
 
 * 1 nested VPC peer requester stack if set EnableVpcPeerRequester=1.
 
     It sends request to the accepter to create VPC peer connection.
 
     For the details check
-[aws-cfn-vpc-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
+[aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
 
 * 1 EC2 Instance.
     * Shadowsocks-libev is installed if set EnableSSN=1.
