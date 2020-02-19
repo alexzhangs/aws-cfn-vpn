@@ -355,6 +355,21 @@ The default credential defined in the conf file is:
 "L2TPSharedKey=SharedSecret"
 ```
 
+## Tips
+
+1. How to change the IP address of EC2 instance of the Manager stack
+   or the Node stack?
+
+Update the stack with a new value of parameter `EipDomain`, switch the
+value between `vpn` and an empty string ``, this will change the EIP
+of the EC2 instance.
+
+DO NOT operate on the EIP directly, such as allocate a new EIP
+and associate it, then release the old. This will cause an error
+on locating the original EIP resource when operating on the stack
+level.
+
+
 ## Troubleshooting
 
 1. The stack ends up at 'CREATE_FAILED' status.
