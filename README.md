@@ -361,7 +361,7 @@ The default credential defined in the conf file is:
    or the Node stack?
 
 Update the stack with a new value of parameter `EipDomain`, switch the
-value between `vpn` and an empty string ``, this will change the EIP
+value between `vpc` and an empty string ``, this will change the EIP
 of the EC2 instance.
 
 DO NOT operate on the EIP directly, such as allocate a new EIP
