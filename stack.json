@@ -614,6 +614,7 @@
     "SSDomainCredential": {
       "Type": "String",
       "Default": "",
+      "NoEcho": "true",
       "Description": "User credential/token for the Nameserver API service."
     },
     "SSManagerInterface": {
