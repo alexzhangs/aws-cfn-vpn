@@ -35,12 +35,30 @@
           "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]},
           "PeeringVpcId": {"Ref": "VpcPeerAccepterVpcId"},
           "PeeringRegion": {"Ref": "VpcPeerAccepterRegion"},
-          "PeeringAccountId": {"Ref": "VpcPeerAccepterAccountId"},
+          "PeeringAccountId": {"Ref": "SSMAccountId"},
           "PeeringRoleArn": {"Ref": "VpcPeerAccepterRoleArn"},
           "PeeringCidrBlock": {"Ref": "VpcPeerAccepterCidrBlock"},
           "PeeringSqsQueueUrl": {"Ref": "VpcPeerAccepterSqsQueueUrl"}
         },
         "TimeoutInMinutes": "3"
+      }
+    },
+    "ConfigProviderStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "EnableConfigProvider",
+      "Properties": {
+        "TemplateURL": {"Ref": "ConfigProviderStackTemplateURL"},
+        "Parameters": {
+          "AllSupported": "false",
+          "IncludeGlobalResourceTypes": "false",
+          "ResourceTypes": "AWS::EC2::Instance",
+          "SnsTopicArn": {"Fn::If": [
+            "EnableConfigConsumer",
+            {"Ref": "SnsTopicForConfig"},
+            {"Ref": "SnsTopicArn"}
+          ]}
+        },
+        "TimeoutInMinutes": "2"
       }
     },
     "VPNServerSG": {
@@ -192,7 +210,7 @@
             {"Ref": "AWS::NoValue"}
           ]},
           {"Fn::If": [
-            "EnableSSM",
+            "EnableConfigConsumer",
             {
               "Key": "ConditionalDependsOn-LambdaSnsTopicSubscriberInvokePermission",
               "Value": {"Ref": "LambdaSnsTopicSubscriberInvokePermission"}
@@ -200,7 +218,7 @@
             {"Ref": "AWS::NoValue"}
           ]},
           {"Fn::If": [
-            "EnableSSM",
+            "EnableConfigConsumer",
             {
               "Key": "ConditionalDependsOn-SnsTopicPolicyForConfig",
               "Value": {"Ref": "SnsTopicPolicyForConfig"}
@@ -208,26 +226,10 @@
             {"Ref": "AWS::NoValue"}
           ]},
           {"Fn::If": [
-            "EnableSSN",
+            "EnableConfigProvider",
             {
-              "Key": "ConditionalDependsOn-S3BucketPolicyForConfig",
-              "Value": {"Ref": "S3BucketPolicyForConfig"}
-            },
-            {"Ref": "AWS::NoValue"}
-          ]},
-          {"Fn::If": [
-            "EnableSSN",
-            {
-              "Key": "ConditionalDependsOn-ConfigRecorder",
-              "Value": {"Ref": "ConfigRecorder"}
-            },
-            {"Ref": "AWS::NoValue"}
-          ]},
-          {"Fn::If": [
-            "EnableSSN",
-            {
-              "Key": "ConditionalDependsOn-ConfigDeliveryChannel",
-              "Value": {"Ref": "ConfigDeliveryChannel"}
+              "Key": "ConditionalDependsOn-ConfigProviderStack",
+              "Value": {"Ref": "ConfigProviderStack"}
             },
             {"Ref": "AWS::NoValue"}
           ]}
@@ -347,7 +349,7 @@
     },
     "LambdaSnsTopicSubscriberExecutionRole": {
       "Type": "AWS::IAM::Role",
-      "Condition": "EnableSSM",
+      "Condition": "EnableConfigConsumer",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -369,7 +371,7 @@
     },
     "LambdaSnsTopicSubscriber": {
       "Type": "AWS::Lambda::Function",
-      "Condition": "EnableSSM",
+      "Condition": "EnableConfigConsumer",
       "Properties": {
         "Description": "Receive AWS Config events through SNS, and update Domain, Node and SSManager in shadowsocks-manager.",
         "Code": {
@@ -394,7 +396,7 @@
     },
     "LambdaSnsTopicSubscriberInvokePermission": {
       "Type": "AWS::Lambda::Permission",
-      "Condition": "EnableSSM",
+      "Condition": "EnableConfigConsumer",
       "Properties": {
         "FunctionName": {"Fn::GetAtt": ["LambdaSnsTopicSubscriber", "Arn"]},
         "Action": "lambda:InvokeFunction",
@@ -404,7 +406,7 @@
     },
     "SnsTopicForConfig": {
       "Type": "AWS::SNS::Topic",
-      "Condition": "EnableSSM",
+      "Condition": "EnableConfigConsumer",
       "Properties": {
         "TopicName": {"Fn::Sub": "${AWS::StackName}-config-topic"},
         "Subscription": [
@@ -417,7 +419,7 @@
     },
     "SnsTopicPolicyForConfig": {
       "Type": "AWS::SNS::TopicPolicy",
-      "Condition": "EnableSSM",
+      "Condition": "EnableConfigConsumer",
       "Properties": {
         "PolicyDocument": {
           "Version": "2012-10-17",
@@ -432,171 +434,6 @@
         },
         "Topics": [{"Ref": "SnsTopicForConfig"}]
       }
-    },
-    "S3BucketForConfig": {
-      "Type": "AWS::S3::Bucket",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "BucketName": {"Fn::Sub": "${AWS::StackName}-config-bucket"}
-      },
-      "DeletionPolicy": "Delete"
-    },
-    "S3BucketPolicyForConfig": {
-      "Type": "AWS::S3::BucketPolicy",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "Bucket": {"Ref": "S3BucketForConfig"},
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement":[
-            {
-              "Sid": "AWSConfigBucketPermissionsCheck",
-              "Effect": "Allow",
-              "Principal": {"Service": ["config.amazonaws.com"]},
-              "Action": "s3:GetBucketAcl",
-              "Resource": {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}"}
-            },
-            {
-              "Sid": "AWSConfigBucketExistenceCheck",
-              "Effect": "Allow",
-              "Principal": {"Service": ["config.amazonaws.com"]},
-              "Action": "s3:ListBucket",
-              "Resource": {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}"}
-            },
-            {
-              "Sid": "AWSConfigBucketDelivery",
-              "Effect": "Allow",
-              "Principal": {"Service": ["config.amazonaws.com"]},
-              "Action": "s3:PutObject",
-              "Resource": {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}/*"},
-              "Condition": {
-                "StringEquals": {
-                  "s3:x-amz-acl": "bucket-owner-full-control"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "LambdaCleanBucketOnDeleteExecutionRole": {
-      "Type": "AWS::IAM::Role",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {"Service": ["lambda.amazonaws.com"]},
-              "Action": ["sts:AssumeRole"]
-            }
-          ]
-        },
-        "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
-        "Path": "/",
-        "Policies": [
-          {
-            "PolicyName": "default",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "s3:ListBucket",
-                    "s3:GetObject",
-                    "s3:DeleteObject"
-                  ],
-                  "Resource": [
-                    {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}"},
-                    {"Fn::Sub": "arn:aws:s3:::${S3BucketForConfig}/*"}
-                  ]
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "LambdaCleanBucketOnDelete": {
-      "Type": "AWS::Lambda::Function",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "Description": "Clean S3 Bucket on stack deletion.",
-        "Code": { "ZipFile": { "Fn::Join": [ "\n", [
-          "#!/usr/bin/env python",
-          "",
-          "from __future__ import print_function",
-          "",
-          "import boto3",
-          "import cfnresponse",
-          "",
-          "print('Loading function')",
-          "",
-          "def lambda_handler(event, context):",
-          "    try:",
-          "        bucket = event['ResourceProperties']['BucketName']",
-          "        requesttype = event['RequestType']",
-          "",
-          "        print('request type: {}, bucket: {}'.format(requesttype, bucket))",
-          "        if requesttype == 'Delete':",
-          "            s3 = boto3.resource('s3')",
-          "            bucket = s3.Bucket(bucket)",
-          "            for obj in bucket.objects.filter():",
-          "                s3.Object(bucket.name, obj.key).delete()",
-          "",
-          "        cfnresponse.send(event, context, cfnresponse.SUCCESS, {})",
-          "    except Exception as e:",
-          "        print(e)",
-          "        cfnresponse.send(event, context, cfnresponse.FAILED, {'error': str(e)})"
-        ] ] } },
-        "Handler": "index.lambda_handler",
-        "Runtime": "python2.7",
-        "Timeout": "15",
-        "Role": {"Fn::GetAtt": ["LambdaCleanBucketOnDeleteExecutionRole", "Arn"]}
-      }
-    },
-    "CleanBucketOnDelete": {
-      "Type": "AWS::CloudFormation::CustomResource",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "ServiceToken": {"Fn::GetAtt": ["LambdaCleanBucketOnDelete", "Arn"]},
-        "BucketName": {"Ref": "S3BucketForConfig"}
-      }
-    },
-    "AwsServiceRoleForConfig": {
-      "Type": "AWS::IAM::ServiceLinkedRole",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "AWSServiceName": "config.amazonaws.com"
-      }
-    },
-    "ConfigRecorder": {
-      "Type": "AWS::Config::ConfigurationRecorder",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "Name": "default",
-        "RecordingGroup": {
-          "ResourceTypes": ["AWS::EC2::Instance"]
-        },
-        "RoleARN": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/config.amazonaws.com/${AwsServiceRoleForConfig}"}
-      }
-    },
-    "ConfigDeliveryChannel": {
-      "Type": "AWS::Config::DeliveryChannel",
-      "Condition": "EnableSSN",
-      "Properties": {
-        "S3BucketName": {"Ref": "S3BucketForConfig"},
-        "SnsTopicARN": {"Fn::If": [
-          "EnableSSM",
-          {"Ref": "SnsTopicForConfig"},
-          {"Ref": "SnsTopicArn"}
-        ]}
-      },
-      "DependsOn": [
-        "CleanBucketOnDelete"
-      ]
     }
   },
   "Conditions": {
@@ -614,6 +451,12 @@
     },
     "EnableL2TP": {
       "Fn::Equals": [{"Ref": "EnableL2TP"}, "1"]
+    },
+    "EnableConfigConsumer": {
+      "Fn::Equals": [{"Ref": "EnableConfigConsumer"}, "1"]
+    },
+    "EnableConfigProvider": {
+      "Fn::Equals": [{"Ref": "EnableConfigProvider"}, "1"]
     },
     "SSMDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]
@@ -672,11 +515,6 @@
       "Type": "String",
       "Default": "",
       "Description": "Region code of the VPC peer accepter."
-    },
-    "VpcPeerAccepterAccountId": {
-      "Type": "String",
-      "Default": "",
-      "Description": "AWS Account ID of the owner of the VPC peer accepter."
     },
     "VpcPeerAccepterRoleArn": {
       "Type": "String",
@@ -804,6 +642,11 @@
       "Default": "false",
       "Description": "Enable TCP fast open for Shadowsocks server. Default is 'false'."
     },
+    "SSMAccountId": {
+      "Type": "String",
+      "Default": "",
+      "Description": "AWS Account ID of the owner of the Shadowsocks manager stack."
+    },
     "SSMDomain": {
       "Type": "String",
       "Default": "",
@@ -869,6 +712,23 @@
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
       "ConstraintDescription": "Must be a valid IP v4 address like x.x.x.x.",
       "Description": "Enter primary DNS. Default is '8.8.4.4'."
+    },
+    "EnableConfigConsumer": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Specifies whether SNS topic and Lambda function should be created, to handle the change events of AWS Config services. If you set EnableSSM=1, then you should set this option to '1'. The default is '0'."
+    },
+    "EnableConfigProvider": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Specifies whether AWS Config services should be set up to notify EC2 instance changes so that the instance can be auto-registered into Shadowsocks manager. If you set EnableSSN=1, then you should set this option to '1', but only set once in one AWS account. If you have already set up AWS Config in the account, then set this option to '0'. The default is '0'."
+    },
+    "ConfigProviderStackTemplateURL": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Config Provider stack template URL, must be an AWS S3 URL."
     },
     "VpcStackTemplateURL": {
       "Type": "String",
@@ -984,11 +844,14 @@
     }
   },
   "Outputs": {
+    "AccountId": {
+      "Value": {"Ref": "AWS::AccountId"}
+    },
     "VpcId": {
       "Value": {"Fn::GetAtt": ["VpcStack", "Outputs.Vpc"]}
     },
-    "SnsTopicArn": {
-      "Condition": "EnableSSM",
+    "SnsTopicArnForConfig": {
+      "Condition": "EnableConfigConsumer",
       "Value": {"Ref": "SnsTopicForConfig"}
     },
     "IamPeerRoleArn": {
