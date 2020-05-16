@@ -25,6 +25,7 @@ aws-cfn-vpn (github)
 ├── aws-cfn-vpc (github)
 ├── aws-cfn-vpc-peer-accepter (github)
 ├── aws-cfn-vpc-peer-requester (github)
+├── aws-cfn-config-provider (github)
 ├── aws-ec2-shadowsocks-libev (github)
 │   └── shadowsocks-libev (yum)
 ├── shadowsocks-manager (github)
@@ -68,6 +69,15 @@ opening to public internet.
     For the details check
 [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
 
+* 1 nested Config service stack if set EnableConfigProvider=1.
+
+    It setup Config service on the node stack, to send node change
+    events to the manager stack so that the node can be registered
+    automatically.
+
+    For the details check
+[aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
+
 * 1 EC2 Instance.
     * Shadowsocks-libev is installed if set EnableSSN=1.
     * shadowsocks-manager is installed if set EnableSSM=1.
@@ -87,7 +97,7 @@ CloudFormation template deployment.
 
 There are 2 classic deployment methods:
 
-1. Deploy a single stack with every inside, including
+1. Deploy a single stack with everything inside, including
 shadowsocks-manager, Shadosocks node and XL2TPD.
 There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
 
@@ -196,6 +206,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
+$ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 ```
 
 ### Create the Manager Stack
@@ -275,7 +286,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
     "SSDomain=<vpn.yourdomain.com>"
     "KeyPairName=<your_aws_ec2_key_pair_name>"
     "VpcPeerAccepterRegion=<your_accepter_region>"
-    "VpcPeerAccepterAccountId=<your_aws_account_id_of_owner_of_accepter>"
+    "SSMAccountId=<your_aws_account_id_of_owner_of_manager_stack>"
     ```
 
     Change any other settings as you wish.
