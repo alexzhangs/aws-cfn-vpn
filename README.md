@@ -7,16 +7,15 @@ and XL2TPD, and is trying to make the deployment as easier as possible.
 
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
-which is a web based Shadowsocks management tool for multi user and traffic statistics,
-support multi node, sync IPs to name.com.
+which is a web-based Shadowsocks management tool for multi-user and traffic statistics,
+support multi-node, sync IPs to name.com.
 
 Below is the VPN services list:
 
-* Shadowsocks-libev, multi nodes with a center user management is supported by deploying this stack
-  multi times.
+* Shadowsocks-libev, multi nodes with a center user management is supported by deploying this stack multi times.
 * XL2TPD, the user management is separate from shadowsocks-manager.
 
-This stack leverages several other repoes to achieve the work, below
+This stack leverages several other repos to achieve the work, below
 gives an overview of the inside dependency structure. All the internal
 dependencies will be installed automatically except `aws-ec2-ses`.
 
@@ -43,7 +42,7 @@ aws-cfn-vpn (github)
 
 This repo contains a standard AWS CloudFormation template `stack.json`
 which can be deployed with AWS web console, AWS CLI or any other AWS
-CloudFormation compitable tool.
+CloudFormation compatible tool.
 
 This template will create an AWS CloudFormation stack, including
 following resources:
@@ -54,17 +53,14 @@ following resources:
 
 * 1 nested VPC peer accepter stack if set EnableVpcPeerAccepter=1.
 
-    It accepts VPC peer connection request from another VPC. VPC peer
-connection is used to create private network connection between
-manager stack and node stack, to protect the multi-user API from
-opening to public internet.
+    It accepts the VPC peer connection request from another VPC. The VPC peer connection is used to create a private network connection between manager stack and node stack, to protect the multi-user API from opening to the public internet.
 
     For the details check
 [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
 
 * 1 nested VPC peer requester stack if set EnableVpcPeerRequester=1.
 
-    It sends request to the accepter to create VPC peer connection.
+    It sends a request to the accepter to create a VPC peer connection.
 
     For the details check
 [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
@@ -88,8 +84,7 @@ file.
 
 ### sample-*.conf
 
-`sample-*.conf` are config files used by `aws-cfn-deploy` to automate AWS
-CloudFormation template deployment.
+`sample-*.conf` are config files used by `aws-cfn-deploy` to automate AWS CloudFormation template deployment.
 
 `aws-cfn-deploy` can be installed from repo [xsh-lib/aws](https://github.com/xsh-lib/aws).
 
@@ -98,13 +93,12 @@ CloudFormation template deployment.
 There are 2 classic deployment methods:
 
 1. Deploy a single stack with everything inside, including
-shadowsocks-manager, Shadosocks node and XL2TPD.
+shadowsocks-manager, Shadosocks node, and XL2TPD.
 There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
 
 1. Deploy at least 2 stacks, one for shadowsocks-manager and XL2TPD,
 one or more for Shadowsocks nodes. Each one needs to be deployed in a
-different AWS account. That allows you to balance network triffic between
-AWS accounts.
+different AWS account. That allows you to balance network traffic between AWS accounts.
 There are 3 sample config files for this.
 
     * sample-ssm.conf
@@ -113,7 +107,7 @@ There are 3 sample config files for this.
 
 ## Domain Name Design
 
-There are 3 DNS host names needed for your services:
+There are 3 DNS hostnames needed for your services:
 
 1. The domain name pointing to shadowsocks-manager service, such
 as `admin.ss.yourdomain.com`.
@@ -124,8 +118,7 @@ as `admin.ss.yourdomain.com`.
 1. The domain name pointing to Shadowsocks nodes, such as
 `ss.yourdomain.com`.
 
-If you are deploying a single stack with everything inside, then one
-domain host name will work out.
+If you are deploying a single stack with everything inside, then one domain hostname will work out.
 
 ## Deploy
 
@@ -156,13 +149,13 @@ for each nested templates.
 
 ### Prepare AWS Accounts
 
-1. Sign up [AWS accounts](https://aws.amanzon.com) if don't have.
+1. Sign up [AWS accounts](https://aws.amanzon.com) if you don't have.
 
-    You will need more than one account if planning to deploy multi node stacks.
+    You will need more than one account if planning to deploy multi-node stacks.
 
 1. Create an IAM user and give it admin permissions in each AWS account.
 
-    This can be done with AWS CLI if you already have access key
+    This can be done with AWS CLI if you already have the access key
     configured for the account:
 
     ```sh
@@ -170,26 +163,26 @@ for each nested templates.
     $ aws iam attach-user-policy --user-name admin --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
     ```
 
-    Otherwise just use the AWS web console.
+    Otherwise, just use the AWS web console.
 
-    NOTE: You must create IAM user or role to deploy the
+    NOTE: You must create an IAM user or role to deploy the
     stacks, you can not use AWS `root user` or its access key to do the
     deployment. Because there is IAM assume role inside the template,
     which assumes an action `ec2:AcceptVpcPeeringConnection` and AWS
-    restricts it's can't be assumed by root user.
+    restricts it's can't be assumed by the root user.
 
-1. Create an access key for each IAM user created in last step.
+1. Create an access key for each IAM user created in the last step.
 
-    This can be done with AWS CLI if you already have access key
+    This can be done with AWS CLI if you already have the access key
     configured for the account:
 
     ```sh
     $ aws iam create-access-key --user-name admin
     ```
 
-    Otherwise just use the AWS web console.
+    Otherwise, just use the AWS web console.
 
-1. Create a profile for each access key created in last step.
+1. Create a profile for each access key created in the last step.
 
    A region is needed to be set in this step.
 
@@ -225,7 +218,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 
 1. Edit `sample-ssm.conf`.
 
-    Replace the values wrapped by '<>' with your prefered.
+    Replace the values wrapped by '<>' with your preferred.
 
     ```ini
     "KeyPairName=<your_aws_ec2_key_pair_name>"
@@ -243,10 +236,9 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
     $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm.conf
     ```
 
-    Then wait the stack creation complete.
+    Then wait for the stack creation complete.
 
-    If the stack creation complete successfully, run below command to get the
-    output of the stack. Replace `<stack_name>` with the real stack name.
+    If the stack creation complete successfully, run below command to get the output of the stack. Replace `<stack_name>` with the real stack name.
 
     ```bash
     $ xsh aws/cfn/stack/desc <stack_name>
@@ -256,7 +248,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 
    Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
 
-   Log in with the default username and password if you didn't change it in sample conf file.
+   Log in with the default username and password if you didn't change it in the sample conf file.
 
    ```ini
    "SSMAdminUsername=admin"
@@ -265,7 +257,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 
 ### Create the Node Stack
 
-1. Activate another AWS profile and create EC2 key pair.
+1. Activate another AWS profile and create an EC2 key pair.
 
     Refer to the steps in the last section.
 
@@ -280,7 +272,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
     "SnsTopicArn=<your_snstopicarn_of_ssm_stack>"
     ```
 
-    Replace the values wrapped by '<>' with your prefered.
+    Replace the values wrapped by '<>' with your preferred.
 
     ```ini
     "SSDomain=<vpn.yourdomain.com>"
@@ -299,7 +291,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
     $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssn-1.conf
     ```
 
-    Then wait the stack creation complete.
+    Then wait for the stack creation complete.
 
 1. If everything goes fine, repeat the same steps with
 `sample-ssn-2.conf` to deploy the next node stack.
@@ -309,7 +301,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
 pointing to the public IP of EC2 Instance of manager stack.
 
-    Use this domain to access to the shadowsocks-manager.
+    Use this domain to access the shadowsocks-manager.
 
 1. Create a DNS `A record`, such as `vpn`.yourdomain.com, pointing to the
 public IP of EC2 Instance of manager stack.
@@ -329,7 +321,7 @@ the public IP of EC2 Instance of node stack.
     "SSDomainCredential=<your_api_token_of_name.com>"
     ```
 
-    Use this domain to access to the Shadowsocks service.
+    Use this domain to access the Shadowsocks service.
 
 ## Configure shadowsocks-manager
 
@@ -337,12 +329,12 @@ the public IP of EC2 Instance of node stack.
 `http://admin.ss.yourdomain.com/admin` after the DNS records get
 effective.
 
-1. Goto `Home › Shadowsocks › Shadowsocks Nodes › Add Shadowsocks
+1. Go to `Home › Shadowsocks › Shadowsocks Nodes › Add Shadowsocks
 Node`, to check the node list, all node stacks you created should have been
 registered as nodes automatically.
 
-    Note: The registration is rely on the AWS Config, SNS and Lambda services,
-it takes up to around 15 minutes to capture and delivery the config changes.
+    Note: The registration relies on the AWS Config, SNS and Lambda services,
+it takes up to around 15 minutes to capture and deliver the config changes.
 
 1. Now you are ready to create Shadowsocks accounts in the web
    console, or import the previously exported accounts back.
@@ -372,12 +364,12 @@ The default credential defined in the conf file is:
    or the Node stack?
 
 Update the stack with a new value of parameter `EipDomain`, switch the
-value between `vpc` and an empty string ``, this will change the EIP
+the value between `vpc` and an empty string ``, this will change the EIP
 of the EC2 instance.
 
 DO NOT operate on the EIP directly, such as allocate a new EIP
 and associate it, then release the old. This will cause an error
-on locating the original EIP resource when operating on the stack
+in locating the original EIP resource when operating on the stack
 level.
 
 
@@ -386,8 +378,8 @@ level.
 1. The stack ends up at 'CREATE_FAILED' status.
 
     Log in the AWS web console, go to CloudFormation, check the event
-    list of the stack, found the failed events to locate the root
-    reason, check the event list of nested stack if neccessary.
+    list of the stack, found the failed events to locate the root reason,
+    check the event list of the nested stack if necessary.
 
 1. For any problem related with the repoes that aws-cfn-vpn depends
 on, check with the depended repoes, here is the quick dial of star
@@ -438,7 +430,7 @@ gates.
    }
    ```
 
-   For the regions without an AMI, you need to figure it out by yourself. Usually an AWS AMI with which the template works, will look like:
+   For the regions without an AMI, you need to figure it out by yourself. Usually, an AWS AMI with which the template works will look like:
 
    ```
    Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
