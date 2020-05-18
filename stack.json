@@ -434,6 +434,88 @@
         },
         "Topics": [{"Ref": "SnsTopicForConfig"}]
       }
+    },
+    "SsnLambdaSnsTopicSubscriberExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": ["lambda.amazonaws.com"]},
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          "arn:aws:iam::aws:policy/AdministratorAccess"
+        ],
+        "Path": "/"
+      }
+    },
+    "SsnLambdaSnsTopicSubscriber": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "Description": "Maintain the node stack by receiving the SNS messages.",
+        "Code": {
+          "S3Bucket": {"Ref": "S3BucketForSsnLambdaSnsTopicSubscriber"},
+          "S3Key": {"Ref": "S3KeyForSsnLambdaSnsTopicSubscriber"}
+        },
+        "Environment": {
+          "Variables": {
+            "SSN_STACK_ID": {"Ref": "AWS::StackId"}
+          }
+        },
+        "Handler": "SsnLambdaSnsTopicSubscriber.lambda_handler",
+        "Runtime": "python2.7",
+        "Timeout": "60",
+        "Role": {"Fn::GetAtt": ["SsnLambdaSnsTopicSubscriberExecutionRole", "Arn"]}
+      }
+    },
+    "SsnLambdaSnsTopicSubscriberInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "FunctionName": {"Fn::GetAtt": ["SsnLambdaSnsTopicSubscriber", "Arn"]},
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": {"Ref": "SnsTopicForSsn"}
+      }
+    },
+    "SnsTopicForSsn": {
+      "Type": "AWS::SNS::Topic",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "TopicName": {"Fn::Sub": "${AWS::StackName}-ssn-topic"},
+        "Subscription": [
+          {
+            "Endpoint": {"Fn::GetAtt": ["SsnLambdaSnsTopicSubscriber", "Arn"]},
+            "Protocol": "lambda"
+          }
+        ]
+      }
+    },
+    "SnsTopicPolicyForSsn": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Condition": "EnableSSN",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"AWS": "*"},
+              "Action": "sns:Publish",
+              "Resource": {"Ref": "SnsTopicForSsn"}
+            }
+          ]
+        },
+        "Topics": [{"Ref": "SnsTopicForSsn"}]
+      }
     }
   },
   "Conditions": {
@@ -745,6 +827,16 @@
       "Type": "String",
       "Default": "",
       "Description": "S3 key for LambdaSnsTopicSubscriber."
+    },
+    "S3BucketForSsnLambdaSnsTopicSubscriber": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 bucket name for SsnLambdaSnsTopicSubscriber."
+    },
+    "S3KeyForSsnLambdaSnsTopicSubscriber": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 key for SsnLambdaSnsTopicSubscriber."
     }
   },
   "Mappings": {
@@ -854,6 +946,10 @@
     "SnsTopicArnForConfig": {
       "Condition": "EnableConfigConsumer",
       "Value": {"Ref": "SnsTopicForConfig"}
+    },
+    "SnsTopicArnForSsn": {
+      "Condition": "EnableSSN",
+      "Value": {"Ref": "SnsTopicForSsn"}
     },
     "IamPeerRoleArn": {
       "Condition": "EnableVpcPeerAccepter",
