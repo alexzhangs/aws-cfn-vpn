@@ -28,7 +28,8 @@ def change_ip(stack):
         UsePreviousTemplate=True,
         Parameters=new_param,
         Capabilities=[
-            'CAPABILITY_IAM'
+            'CAPABILITY_IAM',
+            'CAPABILITY_NAMED_IAM'
         ]
     )
 
