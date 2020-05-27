@@ -41,7 +41,8 @@ def lambda_handler(event, context):
     cfn = boto3.resource('cloudformation')
     stack = cfn.Stack(os.getenv('SSN_STACK_ID'))
 
-    message = message.lower()
+    # convert to lower and remove any [_- \t]
+    message = message.lower().translate({ord(i):None for i in ['_', '-', ' ', '\t']})
     if message == 'changeip':
         return change_ip(stack)
     else:
