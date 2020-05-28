@@ -210,6 +210,33 @@
             {"Ref": "AWS::NoValue"}
           ]},
           {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "SnsTopicArn",
+              "Value": {"Ref": "SnsTopicForSsn"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "AccessKeyForUserSnsPublisher",
+              "Value": {"Ref": "AccessKeyForUserSnsPublisher"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableSSN",
+            {
+              "Key": "SecretKeyForUserSnsPublisher",
+              "Value": {"Fn::GetAtt": [
+                "AccessKeyForUserSnsPublisher",
+                "SecretAccessKey"
+              ]}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
             "EnableConfigConsumer",
             {
               "Key": "ConditionalDependsOn-LambdaSnsTopicSubscriberInvokePermission",
@@ -433,6 +460,35 @@
           ]
         },
         "Topics": [{"Ref": "SnsTopicForConfig"}]
+      }
+    },
+    "UserSnsPublisher": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "UserName": "sns_publisher",
+        "Policies": [
+          {
+            "PolicyName": "policygen-SNS-PUBLISHER",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "sns:Publish",
+                  "Resource": {"Ref":"SnsTopicForSsn"}
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "AccessKeyForUserSnsPublisher": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": {
+          "Ref": "UserSnsPublisher"
+        }
       }
     },
     "SsnLambdaSnsTopicSubscriberExecutionRole": {

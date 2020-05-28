@@ -54,6 +54,9 @@ def lambda_handler(event, context):
         node.private_ip = ccnm.resource['privateIpAddress']
         node.location = get_long_region_name(ccnm.json['configurationItem']['awsRegion'])
         node.is_active = (ccnm.resource['state']['name'] == 'running')
+        node.sns_endpoint = ccnm.get_tag_value(name='SnsTopicArn')
+        node.sns_access_key = ccnm.get_tag_value(name='AccessKeyForUserSnsPublisher')
+        node.sns_secret_key = ccnm.get_tag_value(name='SecretKeyForUserSnsPublisher')
     else:
         print('There is no tag with name "Name" on the instance. Skip to update Domain, Node and SSManager in shadowsocks-manager.')
         return
