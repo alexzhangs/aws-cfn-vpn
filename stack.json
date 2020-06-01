@@ -61,6 +61,18 @@
         "TimeoutInMinutes": "2"
       }
     },
+    "LexBotStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "EnableLexBot",
+      "Properties": {
+        "TemplateURL": {"Ref": "LexBotStackTemplateURL"},
+        "Parameters": {
+          "Region": {"Ref": "LexBotRegion"},
+          "LambdaArn": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
+        },
+        "TimeoutInMinutes": "2"
+      }
+    },
     "VPNServerSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -374,6 +386,126 @@
         }
       }
     },
+    "LambdaSsmApiExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": ["lambda.amazonaws.com"]},
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+        ],
+        "Path": "/"
+      }
+    },
+    "LambdaSsmApi": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "Description": "Provide the Lambda interface for the shadowsocks-manager REST APIs: Domain, Node and SSManager.",
+        "Code": { "ZipFile": { "Fn::Join": [ "\n", [
+          "_E='post'",
+          "_D='get'",
+          "_C=False",
+          "_B='data'",
+          "_A=None",
+          "import os,json,boto3,botocore.vendored.requests as requests",
+          "print('Loading function')",
+          "def lambda_handler(event,context):",
+          "    A='SSM_INSTANCE_LOGICAL_ID';print('Received event: '+json.dumps(event));ec2=Ec2Instance(os.getenv('SSM_STACK_ID'),os.getenv(A))",
+          "    if ec2 is _A:raise Exception('{}: not found the EC2 instance'.format(os.getenv(A)))",
+          "    print('wait here, the CREATE notification of config may come earlier.');ec2.wait_until_running();print('go on now.');BaseAPI.backend=Backend(host=ec2.public_ip_address or os.getenv('SSM_DOMAIN'),port=os.getenv('SSM_PORT'),user=os.getenv('SSM_ADMIN_USERNAME'),password=os.getenv('SSM_ADMIN_PASSWORD'));action=event['action'].lower();cls=globals()[event['model']]",
+          "    if action=='list':return cls.list(**event.get('filter',{}))",
+          "    elif action=='save':inst=cls(**event[_B]);return inst.save(method=event.get('method'),fields=event.get('fields'))",
+          "    else:raise ValueError('{}: invalid action.'.format(action))",
+          "class Ec2Instance:",
+          "    def __new__(self,stack_id,logical_id):",
+          "        ec2=boto3.resource('ec2');insts=ec2.instances.filter(Filters=[dict(Name='tag:aws:cloudformation:stack-id',Values=[stack_id]),dict(Name='tag:aws:cloudformation:logical-id',Values=[logical_id])])",
+          "        for inst in insts:return inst",
+          "class Backend:",
+          "    def __init__(self,host,port=80,schema='http',user=_A,password=_A):self.url='{schema}://{host}:{port}'.format(host=host,port=port,schema=schema);self.host=host;self.port=port;self.schema=schema;self.user=user;self.password=password;self.session=_A;self.authenticated=_C;self.csrftoken=_A",
+          "    def call(self,*args,**kwargs):",
+          "        if self.csrftoken and _B in kwargs:kwargs[_B]['csrfmiddlewaretoken']=self.csrftoken;kwargs.update({'headers':{'X-CSRFToken':self.csrftoken}})",
+          "        print(args,kwargs);resp=self.session.request(*args,**kwargs)",
+          "        if resp:self.csrftoken=self.session.cookies.get('csrftoken',_A)",
+          "        print('{}: {}'.format(str(resp),resp.text.replace('\\n','')));return resp",
+          "    def authenticate(self,url):",
+          "        print('authenticating');self.session=requests.session();resp=self.call(_D,url)",
+          "        if resp:",
+          "            resp=self.call(_E,url,timeout=5,data=dict(username=self.user,password=self.password,next='/'))",
+          "            if resp:self.authenticated=True",
+          "        return resp",
+          "class BaseAPI:",
+          "    path='/';auth_path=_A;backend=_A",
+          "    @classmethod",
+          "    def get_url(cls,id=_A,auth=_C):url=cls.backend.url+(cls.auth_path if auth else cls.path);return url+'{}/'.format(id)if id else url",
+          "    @classmethod",
+          "    def call(cls,*args,**kwargs):",
+          "        if cls.auth_path and not cls.backend.authenticated:",
+          "            if not cls.backend.authenticate(cls.get_url(auth=True)):return",
+          "        resp=cls.backend.call(*args,**kwargs)",
+          "        if resp is not _A:return resp.json()",
+          "class BaseModel:",
+          "    class API(BaseAPI):auth_path='/admin/login/'",
+          "    def __init__(self,**kwargs):",
+          "        A='id'",
+          "        for (k,v) in kwargs.items():setattr(self,k,v)",
+          "        if not self.__dict__.has_key(A):setattr(self,A,_A)",
+          "    @classmethod",
+          "    def list(cls,**kwargs):result=cls.API.call(_D,cls.API.get_url(),params=kwargs);return[cls(**item)for item in result or[]]",
+          "    def save(self,method=_A,fields=_A):",
+          "        if not method:method=_E if self.id is _A else'put'",
+          "        result=self.API.call(method,self.API.get_url(self.id),data=self.serialize(fields=fields))",
+          "        if result:self.__dict__.update(result)",
+          "        return self",
+          "    def serialize(self,fields=_A):",
+          "        data={}",
+          "        for (k,v) in self.__dict__.items():",
+          "            if fields and k not in fields:continue",
+          "            if isinstance(v,(int,str,unicode)):data[k]=v",
+          "        return data",
+          "class Domain(BaseModel):",
+          "    class API(BaseModel.API):path='/domain/'",
+          "class Node(BaseModel):",
+          "    class API(BaseModel.API):path='/shadowsocks/node/'",
+          "class SSManager(BaseModel):",
+          "    class API(BaseModel.API):path='/shadowsocks/ssmanager/'"
+        ] ] } },
+        "Environment": {
+          "Variables": {
+            "SSM_STACK_ID": {"Ref": "AWS::StackId"},
+            "SSM_INSTANCE_LOGICAL_ID": "VPNServerInstance",
+            "SSM_DOMAIN": {"Ref": "SSMDomain"},
+            "SSM_PORT": {"Ref": "SSMPort"},
+            "SSM_ADMIN_USERNAME": {"Ref": "SSMAdminUsername"},
+            "SSM_ADMIN_PASSWORD": {"Ref": "SSMAdminPassword"}
+          }
+        },
+        "Handler": "index.lambda_handler",
+        "Runtime": "python3.7",
+        "Timeout": "10",
+        "Role": {"Fn::GetAtt": ["LambdaSsmApiExecutionRole", "Arn"]}
+      }
+    },
+    "LambdaSsmApiInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "FunctionName": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]},
+        "Action": "lambda:InvokeFunction",
+        "Principal": "lambda.amazonaws.com",
+        "SourceAccount": {"Ref": "AWS::AccountId"}
+      }
+    },
     "LambdaSnsTopicSubscriberExecutionRole": {
       "Type": "AWS::IAM::Role",
       "Condition": "EnableConfigConsumer",
@@ -572,6 +704,127 @@
         },
         "Topics": [{"Ref": "SnsTopicForSsn"}]
       }
+    },
+    "LambdaLexBotExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EnableLexBot",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": ["lambda.amazonaws.com"]},
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "default",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/"
+      }
+    },
+    "LambdaLexBot": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "EnableLexBot",
+      "Properties": {
+        "Description": "A chat bot to manage the stack.",
+        "Code": { "ZipFile": { "Fn::Join": [ "\n", [
+          "_M='PlainText'",
+          "_L='content'",
+          "_K='contentType'",
+          "_J='isValid'",
+          "_I='type'",
+          "_H='dialogAction'",
+          "_G='slots'",
+          "_F='name'",
+          "_E='VpnInstanceName'",
+          "_D='message'",
+          "_C='currentIntent'",
+          "_B=None",
+          "_A='sessionAttributes'",
+          "import os,logging,json,boto3",
+          "logger=logging.getLogger()",
+          "logger.setLevel(logging.DEBUG)",
+          "def call_ssm(**C):",
+          "    D=boto3.client('lambda');A=D.invoke(FunctionName=os.getenv('LAMBDA_SSM_API_ARN'),Payload=json.dumps(C))",
+          "    if A['StatusCode']>=400:raise Exception('Failed to call the Lambda of SSM API. Response: '+A)",
+          "    B=json.load(A['Payload'])",
+          "    if B.get('errorMessage'):logger.error(B);return _B",
+          "    else:return B",
+          "def get_slots(intent_request):return intent_request[_C][_G]",
+          "def elicit_slot(session_attributes,intent_name,slots,slot_to_elicit,message):return{_A:session_attributes,_H:{_I:'ElicitSlot','intentName':intent_name,_G:slots,'slotToElicit':slot_to_elicit,_D:message}}",
+          "def close(session_attributes,fulfillment_state,message):A={_A:session_attributes,_H:{_I:'Close','fulfillmentState':fulfillment_state,_D:message}};return A",
+          "def delegate(session_attributes,slots):return{_A:session_attributes,_H:{_I:'Delegate',_G:slots}}",
+          "def build_validation_result(is_valid,violated_slot,message_content):",
+          "    D='violatedSlot';C=message_content;B=violated_slot;A=is_valid",
+          "    if C is _B:return{_J:A,D:B}",
+          "    return{_J:A,D:B,_D:{_K:_M,_L:C}}",
+          "def get_instances():return call_ssm(action='list',model='Node',filter=_B)",
+          "def get_sns_endpoint(instance):",
+          "    for A in get_instances()or[]:",
+          "        if instance.lower==A.name.lower():return A['sns_endpoint']",
+          "def validate_instance(instance):",
+          "    A=instance;B=[A.name.lower()for A in get_instances()or[]]",
+          "    if A.lower()not in B:return build_validation_result(False,_E,'{}: the instance name you specified does not exist, the valid instance names are: {}.'.format(A,','.join(B)))",
+          "    return build_validation_result(True,_B,_B)",
+          "def change_ip(intent_request):",
+          "    A=intent_request;C=get_slots(A);B=C[_E];F=A['invocationSource']",
+          "    if F=='DialogCodeHook':",
+          "        if not B:return elicit_slot(A[_A],A[_C][_F],C,_E,_B)",
+          "        E=validate_instance(B)",
+          "        if not E[_J]:return elicit_slot(A[_A],A[_C][_F],C,_E,E[_D])",
+          "    D=get_sns_endpoint(B)",
+          "    if not D:return close(A[_A],'Failed',{_K:_M,_L:'{}: not found the SNS endpoint on this instance.'.format(B)})",
+          "    G=boto3.resource('sns');H=G.Topic(D);H.publish(TargetArn=D,Message='change_ip');return close(A[_A],'Fulfilled',{_K:_M,_L:'The IP address of instance {} will be replaced with a new one.'.format(B)})",
+          "def dispatch(intent_request):",
+          "    A=intent_request;logger.debug('dispatch userId={}, intentName={}'.format(A['userId'],A[_C][_F]));B=A[_C][_F]",
+          "    if B=='GetNewIpForVpnInstance':return change_ip(A)",
+          "    raise Exception('Intent with name '+B+' not supported')",
+          "def lambda_handler(event,context):A=event;logger.info('Received event'+json.dumps(A));return dispatch(A)"
+        ] ] } },
+        "Environment": {
+          "Variables": {
+            "LAMBDA_SSM_API_ARN": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]}
+          }
+        },
+        "Handler": "index.lambda_handler",
+        "Runtime": "python3.7",
+        "Timeout": "10",
+        "Role": {"Fn::GetAtt": ["LambdaLexBotExecutionRole", "Arn"]}
+      }
+    },
+    "LambdaLexBotInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EnableLexBot",
+      "Properties": {
+        "FunctionName": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]},
+        "Action": "lambda:InvokeFunction",
+        "Principal": {"Fn::If": [
+          "LexBotSeparateRegion",
+          "lambda.amazonaws.com",
+          "lex.amazonaws.com"
+        ]},
+        "SourceAccount": {"Ref": "AWS::AccountId"}
+      }
     }
   },
   "Conditions": {
@@ -595,6 +848,14 @@
     },
     "EnableConfigProvider": {
       "Fn::Equals": [{"Ref": "EnableConfigProvider"}, "1"]
+    },
+    "EnableLexBot": {
+      "Fn::Equals": [{"Ref": "EnableLexBot"}, "1"]
+    },
+    "LexBotSeparateRegion": {
+      "Fn::Not": [{
+        "Fn::Equals": [{"Ref": "AWS::Region"}, {"Ref": "LexBotRegion"}]
+      }]
     },
     "SSMDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]
@@ -869,6 +1130,22 @@
       "Default": "",
       "Description": "Config Provider stack template URL, must be an AWS S3 URL."
     },
+    "EnableLexBot": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Specifies whether Amazon Lex Bot should be set up so that a chat interface can be used to manage Shadowsocks manager and node stacks. If you set EnableSSM=1, then you could set this option to '1'. The default is '0'."
+    },
+    "LexBotStackTemplateURL": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Lex Bot stack template URL, must be an AWS S3 URL."
+    },
+    "LexBotRegion": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Region name to deploy the Lex Bot stack, leave blank to deploy the Lex Bot in the default region."
+    },
     "VpcStackTemplateURL": {
       "Type": "String",
       "Default": "",
@@ -1006,6 +1283,10 @@
     "SnsTopicArnForSsn": {
       "Condition": "EnableSSN",
       "Value": {"Ref": "SnsTopicForSsn"}
+    },
+    "LambdaLexBotArn": {
+      "Condition": "EnableLexBot",
+      "Value": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
     },
     "IamPeerRoleArn": {
       "Condition": "EnableVpcPeerAccepter",

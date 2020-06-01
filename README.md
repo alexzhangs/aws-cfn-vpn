@@ -25,6 +25,7 @@ aws-cfn-vpn (github)
 ├── aws-cfn-vpc-peer-accepter (github)
 ├── aws-cfn-vpc-peer-requester (github)
 ├── aws-cfn-config-provider (github)
+├── aws-cfn-vpn-lexbot (github)
 ├── aws-ec2-shadowsocks-libev (github)
 │   └── shadowsocks-libev (yum)
 ├── shadowsocks-manager (github)
@@ -47,40 +48,46 @@ CloudFormation compatible tool.
 This template will create an AWS CloudFormation stack, including
 following resources:
 
+* 1 EC2 Instance.
+    * Shadowsocks-libev is installed if set `EnableSSN=1`.
+    * shadowsocks-manager is installed if set `EnableSSM=1`.
+    * L2TPD is installed if set `EnableL2TP=1`.
+
+    For the input parameters and the detail of the template, please check the template
+file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
+
 * 1 nested VPC stack.
 
     For the details check [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
 
-* 1 nested VPC peer accepter stack if set EnableVpcPeerAccepter=1.
+* 1 nested VPC peer accepter stack if set `EnableVpcPeerAccepter=1`.
 
     It accepts the VPC peer connection request from another VPC. The VPC peer connection is used to create a private network connection between manager stack and node stack, to protect the multi-user API from opening to the public internet.
 
     For the details check
-[aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
+    [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
 
-* 1 nested VPC peer requester stack if set EnableVpcPeerRequester=1.
+* 1 nested VPC peer requester stack if set `EnableVpcPeerRequester=1`.
 
     It sends a request to the accepter to create a VPC peer connection.
 
     For the details check
-[aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
+    [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
 
-* 1 nested Config service stack if set EnableConfigProvider=1.
+* 1 nested Config service stack if set `EnableConfigProvider=1`.
 
     It setup Config service on the node stack, to send node change
     events to the manager stack so that the node can be registered
     automatically.
 
     For the details check
-[aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
+    [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
 
-* 1 EC2 Instance.
-    * Shadowsocks-libev is installed if set EnableSSN=1.
-    * shadowsocks-manager is installed if set EnableSSM=1.
-    * L2TPD is installed if set EnableL2TP=1.
+* 1 Lex chat bot if set `EnableLexBot=1`.
+    * The chatbot can be deployed in the different regions from the main stack. 
 
-    For the input parameters and the detail of the template, please check the template
-file.
+    For the details check
+    [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot).
 
 ### sample-*.conf
 
@@ -200,6 +207,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
+$ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 ```
 
 ### Create the Manager Stack
