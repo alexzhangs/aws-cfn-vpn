@@ -17,11 +17,9 @@ def call_ssm(**kwargs):
     if resp['StatusCode'] >= 400:
         raise Exception('Failed to call the Lambda of SSM API. Response: ' + resp)
     func_resp = json.load(resp['Payload'])
-    if func_resp.get('errorMessage'):
-        logger.error(func_resp)
+    if func_resp and isinstance(func_resp, dict) and func_resp.get('errorMessage'):
         return None
-    else:
-        return func_resp
+    return func_resp
 
 
 def get_slots(intent_request):

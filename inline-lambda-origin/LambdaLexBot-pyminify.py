@@ -18,8 +18,8 @@ def call_ssm(**C):
     D=boto3.client('lambda');A=D.invoke(FunctionName=os.getenv('LAMBDA_SSM_API_ARN'),Payload=json.dumps(C))
     if A['StatusCode']>=400:raise Exception('Failed to call the Lambda of SSM API. Response: '+A)
     B=json.load(A['Payload'])
-    if B.get('errorMessage'):logger.error(B);return _B
-    else:return B
+    if B and isinstance(B,dict) and B.get('errorMessage'):return _B
+    return B
 def get_slots(intent_request):return intent_request[_C][_G]
 def elicit_slot(session_attributes,intent_name,slots,slot_to_elicit,message):return{_A:session_attributes,_H:{_I:'ElicitSlot','intentName':intent_name,_G:slots,'slotToElicit':slot_to_elicit,_D:message}}
 def close(session_attributes,fulfillment_state,message):A={_A:session_attributes,_H:{_I:'Close','fulfillmentState':fulfillment_state,_D:message}};return A
