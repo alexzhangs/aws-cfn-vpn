@@ -522,8 +522,24 @@
         },
         "ManagedPolicyArns": [
           "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-          "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
-          "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+          "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "default",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
         ],
         "Path": "/"
       }
@@ -539,17 +555,12 @@
         },
         "Environment": {
           "Variables": {
-            "SSM_STACK_ID": {"Ref": "AWS::StackId"},
-            "SSM_INSTANCE_LOGICAL_ID": "VPNServerInstance",
-            "SSM_DOMAIN": {"Ref": "SSMDomain"},
-            "SSM_PORT": {"Ref": "SSMPort"},
-            "SSM_ADMIN_USERNAME": {"Ref": "SSMAdminUsername"},
-            "SSM_ADMIN_PASSWORD": {"Ref": "SSMAdminPassword"}
+            "LAMBDA_SSM_API_ARN": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]}
           }
         },
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
-        "Runtime": "python2.7",
-        "Timeout": "60",
+        "Runtime": "python3.7",
+        "Timeout": "5",
         "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
       }
     },
