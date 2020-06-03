@@ -83,11 +83,11 @@ def get_instances():
 
 def get_sns_endpoint(instance):
     for i in get_instances() or []:
-        if instance.lower == i.name.lower():
+        if instance.lower() == i['name'].lower():
             return i['sns_endpoint']
 
 def validate_instance(instance):
-    names = [i.name.lower() for i in get_instances() or []]
+    names = [i['name'].lower() for i in get_instances() or []]
     if instance.lower() not in names:
         return build_validation_result(
             False,
@@ -137,7 +137,6 @@ def change_ip(intent_request):
     resource = boto3.resource('sns')
     topic = resource.Topic(sns_endpoint)
     topic.publish(
-        TargetArn=sns_endpoint,
         Message='change_ip'
     )
     return close(intent_request['sessionAttributes'],
