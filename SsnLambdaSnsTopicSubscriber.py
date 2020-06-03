@@ -6,8 +6,6 @@
 #     1. Change the node IP:
 #         * Message body: 'changeip'
 
-from __future__ import print_function
-
 import os
 import json
 import boto3
