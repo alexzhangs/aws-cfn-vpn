@@ -607,6 +607,7 @@
     },
     "UserSnsPublisher": {
       "Type": "AWS::IAM::User",
+      "Condition": "EnableSSN",
       "Properties": {
         "UserName": "sns_publisher",
         "Policies": [
@@ -628,6 +629,7 @@
     },
     "AccessKeyForUserSnsPublisher": {
       "Type": "AWS::IAM::AccessKey",
+      "Condition": "EnableSSN",
       "Properties": {
         "UserName": {
           "Ref": "UserSnsPublisher"
