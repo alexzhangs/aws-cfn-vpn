@@ -10,10 +10,37 @@ Additionally, it's also deploying
 which is a web-based Shadowsocks management tool for multi-user and traffic statistics,
 support multi-node, sync IPs to name.com.
 
-Below is the VPN services list:
+## Services List
 
-* Shadowsocks-libev, multi nodes with a center user management is supported by deploying this stack multi times.
-* XL2TPD, the user management is separate from shadowsocks-manager.
+* Shadowsocks-libev
+* XL2TPD
+
+## Features
+
+Shadowsocks-libev:
+
+* Users(ports) are managed by
+[shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager).
+* Sending the account Email.
+* Multi nodes(across multi AWS accounts).
+* Active/Inactive users and nodes.
+* Heartbeat to detect the port alive on the node.
+* Auto-sync the node info to shadowsocks-manager.
+* Auto-sync the node IP address to [name.com](https://name.com).
+* Traffic statistics on ports and nodes(minimize the impact of
+  node restart).
+* Change node IP address from:
+    * Web console
+    * scheduled job
+    * Amazon Lex chatbot
+    * REST API
+    * AWS SNS message
+
+L2TPD:
+
+* User management in the command line.
+
+## Overview
 
 This stack leverages several other repos to achieve the work, below
 gives an overview of the inside dependency structure. All the internal
@@ -100,7 +127,9 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 There are 2 classic deployment methods:
 
 1. Deploy a single stack with everything inside, including
-shadowsocks-manager, Shadosocks node, and XL2TPD.
+shadowsocks-manager, Shadosocks node, and XL2TPD. This method is not
+recommanded, the shadowsocks-manager will be unreachable once the
+node's network goes wrong.
 There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
 
 1. Deploy at least 2 stacks, one for shadowsocks-manager and XL2TPD,
@@ -371,15 +400,14 @@ The default credential defined in the conf file is:
 1. How to change the IP address of EC2 instance of the Manager stack
    or the Node stack?
 
-Update the stack with a new value of parameter `EipDomain`, switch the
+    Update the stack with a new value of parameter `EipDomain`, switch the
 the value between `vpc` and an empty string ``, this will change the EIP
 of the EC2 instance.
 
-DO NOT operate on the EIP directly, such as allocate a new EIP
+    DO NOT operate on the EIP directly, such as allocate a new EIP
 and associate it, then release the old. This will cause an error
 in locating the original EIP resource when operating on the stack
 level.
-
 
 ## Troubleshooting
 
