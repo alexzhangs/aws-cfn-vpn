@@ -22,7 +22,7 @@ class Backend:
         if self.csrftoken and _B in kwargs:kwargs[_B]['csrfmiddlewaretoken']=self.csrftoken;kwargs.update({'headers':{'X-CSRFToken':self.csrftoken}})
         print(args,kwargs);resp=self.session.request(*args,**kwargs)
         if resp:self.csrftoken=self.session.cookies.get('csrftoken',_A)
-        print('{}: {}'.format(str(resp),resp.text.replace('\\n','')));return resp
+        print('{}: {}'.format(str(resp),resp.text));return resp
     def authenticate(self,url):
         print('authenticating');self.session=requests.session();resp=self.call(_D,url)
         if resp:
@@ -36,7 +36,7 @@ class BaseAPI:
     @classmethod
     def call(cls,*args,**kwargs):
         if cls.auth_path and not cls.backend.authenticated:
-            if not cls.backend.authenticate(cls.get_url(auth=True)):return
+            if not cls.backend.authenticate(cls.get_url(auth=True)):print('failed to authenticate');return
         resp=cls.backend.call(*args,**kwargs)
         if resp is not _A:return resp.json()
 class BaseModel:
@@ -44,7 +44,7 @@ class BaseModel:
     def __init__(self,**kwargs):
         A='id'
         for (k,v) in kwargs.items():setattr(self,k,v)
-        if not self.__dict__.has_key(A):setattr(self,A,_A)
+        if not A in self.__dict__:setattr(self,A,_A)
     @classmethod
     def list(cls,**kwargs):result=cls.API.call(_D,cls.API.get_url(),params=kwargs);return[cls(**item)for item in result or[]]
     def save(self,method=_A,fields=_A):
@@ -56,7 +56,7 @@ class BaseModel:
         data={}
         for (k,v) in self.__dict__.items():
             if fields and k not in fields:continue
-            if isinstance(v,(int,str,unicode)):data[k]=v
+            if isinstance(v,(int,str)):data[k]=v
         return data
 class Domain(BaseModel):
     class API(BaseModel.API):path='/domain/'

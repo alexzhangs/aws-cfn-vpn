@@ -87,7 +87,7 @@ class Backend(object):
         resp = self.session.request(*args, **kwargs)
         if resp:
             self.csrftoken = self.session.cookies.get('csrftoken', None)
-        print('{}: {}'.format(str(resp), resp.text.replace('\\n', '')))
+        print('{}: {}'.format(str(resp), resp.text))
         return resp
 
     def authenticate(self, url):
@@ -114,6 +114,7 @@ class BaseAPI(object):
     def call(cls, *args, **kwargs):
         if cls.auth_path and not cls.backend.authenticated:
             if not cls.backend.authenticate(cls.get_url(auth=True)):
+                print('failed to authenticate')
                 return
         resp = cls.backend.call(*args, **kwargs)
         if resp is not None:
@@ -125,7 +126,7 @@ class BaseModel(object):
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items(): setattr(self, k, v)
-        if not self.__dict__.has_key('id'): setattr(self, 'id', None)
+        if not 'id' in self.__dict__: setattr(self, 'id', None)
 
     @classmethod
     def list(cls, **kwargs):
@@ -144,7 +145,7 @@ class BaseModel(object):
         data = {}
         for k, v in self.__dict__.items():
             if fields and k not in fields: continue
-            if isinstance(v, (int, str, unicode)): data[k] = v
+            if isinstance(v, (int, str)): data[k] = v
         return data
 
 class Domain(BaseModel):
