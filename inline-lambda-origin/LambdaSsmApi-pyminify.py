@@ -9,8 +9,8 @@ def lambda_handler(event,context):
     A='SSM_INSTANCE_LOGICAL_ID';print('Received event: '+json.dumps(event));ec2=Ec2Instance(os.getenv('SSM_STACK_ID'),os.getenv(A))
     if ec2 is _A:raise Exception('{}: not found the EC2 instance'.format(os.getenv(A)))
     print('wait here, the CREATE notification of config may come earlier.');ec2.wait_until_running();print('go on now.');BaseAPI.backend=Backend(host=ec2.public_ip_address or os.getenv('SSM_DOMAIN'),port=os.getenv('SSM_PORT'),user=os.getenv('SSM_ADMIN_USERNAME'),password=os.getenv('SSM_ADMIN_PASSWORD'));action=event['action'].lower();cls=globals()[event['model']]
-    if action=='list':return cls.list(**event.get('filter',{}))
-    elif action=='save':inst=cls(**event[_B]);return inst.save(method=event.get('method'),fields=event.get('fields'))
+    if action=='list':insts=cls.list(**event.get('filter',{})or{});return[i.serialize()for i in insts]
+    elif action=='save':inst=cls(**event[_B]);inst.save(method=event.get('method'),fields=event.get('fields'));return inst.serialize()
     else:raise ValueError('{}: invalid action.'.format(action))
 class Ec2Instance:
     def __new__(self,stack_id,logical_id):

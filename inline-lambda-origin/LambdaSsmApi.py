@@ -50,10 +50,12 @@ def lambda_handler(event, context):
     cls = globals()[event['model']]
 
     if action == 'list':
-        return cls.list(**event.get('filter', {}))
+        insts = cls.list(**(event.get('filter', {}) or {}))
+        return [i.serialize() for i in insts]
     elif action == 'save':
         inst = cls(**event['data'])
-        return inst.save(method=event.get('method'), fields=event.get('fields'))
+        inst.save(method=event.get('method'), fields=event.get('fields'))
+        return inst.serialize()
     else:
         raise ValueError('{}: invalid action.'.format(action))
 
