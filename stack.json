@@ -1206,6 +1206,7 @@
         "location": "Asia Pacific (Osaka-Local)"
       },
       "ap-south-1": {
+        "AMI": "ami-005956c5f0f757d37",
         "endpoint": "rds.ap-south-1.amazonaws.com",
         "location": "Asia Pacific (Mumbai)"
       },
