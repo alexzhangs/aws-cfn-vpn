@@ -409,6 +409,17 @@ and associate it, then release the old. This will cause an error
 in locating the original EIP resource when operating on the stack
 level.
 
+    Note: Use Lex chatbot to change the IP address of EC2 instance of
+    the Node stack.
+
+1. How to enable the HTTPS(SSL certificate) for the Manager stack?
+
+    It's strongly recommended to enable HTTPS for the web server to
+    secure the user authentication communication.
+
+    The most convinient method is to use AWS ACM service, the service
+    is free, there's no charge for the certificates.
+
 ## Troubleshooting
 
 1. The stack ends up at 'CREATE_FAILED' status.
