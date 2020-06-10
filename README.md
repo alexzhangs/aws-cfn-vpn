@@ -107,11 +107,24 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
     events to the manager stack so that the node can be registered
     automatically.
 
+    Following chart shows how it works.
+
+    | Node Stacks | Manager Stack |
+    |---|---|
+    | Config events → S3 bucket → | → SNS -> Lambda → SSM REST APIs |
+
     For the details check
     [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
 
 * 1 Lex chat bot if set `EnableLexBot=1`.
-    * The chatbot can be deployed in the different regions from the main stack. 
+
+    The chatbot is used to manage the node stacks. 
+
+    Following chart shows the deployment topology and the control flow.
+
+    | 3rd Part Apps | Manager Stack | Node Stacks |
+    |---|---|---|
+    | Facebook, Slack, ... → text → | → Lex bot → Lambda → | → SNS → Lambda → CloudFormation → EIP |
 
     For the details check
     [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot).
