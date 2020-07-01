@@ -737,7 +737,7 @@
         ],
         "Policies": [
           {
-            "PolicyName": "default",
+            "PolicyName": "LambdaInvokeFunction",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -745,6 +745,21 @@
                   "Effect": "Allow",
                   "Action": [
                     "lambda:InvokeFunction"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "SnsPublish",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sns:Publish"
                   ],
                   "Resource": "*"
                 }
