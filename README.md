@@ -272,7 +272,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 
     ```ini
     "KeyPairName=<your_aws_ec2_key_pair_name>"
-    "SSMDomain=<vpn-admin.yourdomain.com>"
+    "SSMDomain=<admin.ss.yourdomain.com>"
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
     ```
 
@@ -325,7 +325,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
     Replace the values wrapped by '<>' with your preferred.
 
     ```ini
-    "SSDomain=<vpn.yourdomain.com>"
+    "SSDomain=<ss.yourdomain.com>"
     "KeyPairName=<your_aws_ec2_key_pair_name>"
     "VpcPeerAccepterRegion=<your_accepter_region>"
     "SSMAccountId=<your_aws_account_id_of_owner_of_manager_stack>"
@@ -432,6 +432,10 @@ level.
 
     The most convinient method is to use AWS ACM service, the service
     is free, there's no charge for the certificates.
+
+## TODO
+
+* Enable HTTPS for SSM web console by using AWS ACM(Amazon Certificate Manager) service.
 
 ## Troubleshooting
 
