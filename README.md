@@ -8,7 +8,7 @@ and XL2TPD, and is trying to make the deployment as easier as possible.
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
 which is a web-based Shadowsocks management tool for multi-user and traffic statistics,
-support multi-node, sync IPs to name.com.
+support multi-node, creating DNS records and syncing IPs to name.com.
 
 ## Services List
 
@@ -25,6 +25,8 @@ Shadowsocks-libev:
 * Multi nodes(across multi AWS accounts).
 * Active/Inactive users and nodes.
 * Heartbeat to detect the port alive on the node.
+* Auto-create the DNS records for the domains of web console,
+  and Shadowsocks nodes in [name.com](https://name.com).
 * Auto-sync the node info to shadowsocks-manager.
 * Auto-sync the node IP address to [name.com](https://name.com).
 * Traffic statistics on ports and nodes(minimize the impact of
@@ -53,6 +55,7 @@ aws-cfn-vpn (github)
 ├── aws-cfn-vpc-peer-requester (github)
 ├── aws-cfn-config-provider (github)
 ├── aws-cfn-vpn-lexbot (github)
+├── aws-cfn-acm (github)
 ├── aws-ec2-shadowsocks-libev (github)
 │   └── shadowsocks-libev (yum)
 ├── shadowsocks-manager (github)
@@ -118,7 +121,7 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
 * 1 Lex chat bot if set `EnableLexBot=1`.
 
-    The chatbot is used to manage the node stacks. 
+    The chatbot is used to manage the node stacks.
 
     Following chart shows the deployment topology and the control flow.
 
@@ -128,6 +131,20 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     For the details check
     [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot).
+
+* 1 nested ACM service stack if set `EnableSSM=1` and `SSMDomain` is
+used.
+
+    It setup AWS Certificate Manager service on the manager stack, to automate certificates provision. 
+
+    Following chart shows how it works.
+
+    | Manager Stacks | 3rd DNS Service Provider |
+    |---|---|
+    | Custom Resource → Lambda | → API → DNS Records |
+
+    For the details check
+    [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm).
 
 ### sample-*.conf
 
@@ -250,6 +267,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
+$ git clone https://github.com/alexzhangs/aws-cfn-acm
 ```
 
 ### Create the Manager Stack
@@ -272,9 +290,32 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 
     ```ini
     "KeyPairName=<your_aws_ec2_key_pair_name>"
+    ```
+
+    Optional:
+
+    ```ini
+    "Domain=<yourdomain.com>"
     "SSMDomain=<admin.ss.yourdomain.com>"
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
     ```
+    HTTPS will be enabled if `SSMDomain` is specified.
+
+    Enable DNS service API with additional settings(only `name.com` for now):
+
+    ```ini
+    "DomainNameServer=name.com"
+    "DomainNameServerUsername=<your_username_of_name.com>"
+    "DomainNameServerCredential=<your_api_token_of_name.com>"
+    ```
+
+    With DNS service API enabled, DNS records can be automatically
+    maintained, and therefore the ACM certificates provisioning can be
+    fully automated.
+
+    `DomainNameServerUsername` and `DomainNameServerCredential` are
+    generated at your
+    [name.com API settings](https://www.name.com/account/settings/api).
 
     Change any other settings as you wish.
 
@@ -285,6 +326,12 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
     ```bash
     $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm.conf
     ```
+
+    If HTTPS is enabled but the DNS service API is not, you need to
+    manually create DNS record to validate the new created ACM
+    certificate. Visit AWS ACM service console to obtain the DNS
+    record info. Once the ACM certificate is validated successfully,
+    you can proceed.
 
     Then wait for the stack creation complete.
 
@@ -348,7 +395,12 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 
 ## Maintain DNS Records
 
-1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
+If the DNS service API is enabled , then you can skip following steps,
+shadowsocks-manager should have taken care of the DNS records.
+
+If you are not in the case above, proceed with following steps:
+
+ 1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
 pointing to the public IP of EC2 Instance of manager stack.
 
     Use this domain to access the shadowsocks-manager.
@@ -360,16 +412,6 @@ public IP of EC2 Instance of manager stack.
 
 1. Create a DNS `A record`, such as `ss`.yourdomain.com pointing to
 the public IP of EC2 Instance of node stack.
-
-    If you use `name.com` as your Nameserver and have below settings
-    before to create node stack, then you can skip this step,
-    shadowsocks-manager has taken care of the DNS recorders.
-
-    ```ini
-    "SSDomainNameServer=name.com"
-    "SSDomainUsername=<your_username_of_name.com>"
-    "SSDomainCredential=<your_api_token_of_name.com>"
-    ```
 
     Use this domain to access the Shadowsocks service.
 
@@ -427,15 +469,14 @@ level.
 
 1. How to enable the HTTPS(SSL certificate) for the Manager stack?
 
-    It's strongly recommended to enable HTTPS for the web server to
-    secure the user authentication communication.
+    HTTPS will be enabled by default if you specify a domain for the
+    template parameter `SSMDomain`.
 
-    The most convinient method is to use AWS ACM service, the service
-    is free, there's no charge for the certificates.
+    The SSL certificate is issued for the domain `SSMDomain` with AWS
+    ACM service, the service is free, there's no charge for the certificates.
 
 ## TODO
 
-* Enable HTTPS for SSM web console by using AWS ACM(Amazon Certificate Manager) service.
 
 ## Troubleshooting
 

@@ -51,7 +51,7 @@
         "Parameters": {
           "AllSupported": "false",
           "IncludeGlobalResourceTypes": "false",
-          "ResourceTypes": "AWS::EC2::Instance",
+          "ResourceTypes": "AWS::EC2::Instance,AWS::ElasticLoadBalancing::LoadBalancer",
           "SnsTopicArn": {"Fn::If": [
             "EnableConfigConsumer",
             {"Ref": "SnsTopicForConfig"},
@@ -71,6 +71,20 @@
           "LambdaArn": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
         },
         "TimeoutInMinutes": "2"
+      }
+    },
+    "AcmStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "EnableSSL",
+      "Properties": {
+        "TemplateURL": {"Ref": "AcmStackTemplateURL"},
+        "Parameters": {
+          "Domain": {"Ref": "SSMDomain"},
+          "DomainNameServer": {"Ref": "DomainNameServer"},
+          "DomainNameServerUsername": {"Ref": "DomainNameServerUsername"},
+          "DomainNameServerCredential": {"Ref": "DomainNameServerCredential"}
+        },
+        "TimeoutInMinutes": "3"
       }
     },
     "VPNServerSG": {
@@ -160,6 +174,58 @@
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
+    "SSMSslIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Condition": "EnableSSL",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "FromPort": 443,
+        "ToPort": 443,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
+      }
+    },
+    "SSMElb": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Condition": "EnableSSL",
+      "Properties": {
+        "SecurityGroups": [
+          {"Ref": "VPNServerSG"}
+        ],
+        "Subnets": [
+          {"Fn::GetAtt": ["VpcStack", "Outputs.PublicSubnet01"]},
+          {"Fn::GetAtt": ["VpcStack", "Outputs.PublicSubnet02"]}
+        ],
+        "Listeners": [
+          {
+            "LoadBalancerPort": 443,
+            "InstancePort": {"Ref": "SSMPort"},
+            "Protocol": "HTTPS",
+            "SSLCertificateId": {"Fn::GetAtt": ["AcmStack", "Outputs.AcmArn"]}
+          }
+        ],
+        "HealthCheck": {
+          "HealthyThreshold": "3",
+          "Interval": "30",
+          "Target": {"Fn::Join": [":", ["TCP", {"Ref": "SSMPort"}]]},
+          "Timeout": "5",
+          "UnhealthyThreshold": "2"
+        },
+        "Instances": [
+          {"Ref": "VPNServerInstance"}
+        ],
+        "Tags": [
+          {
+            "Key": "ConfigHandlerClass",
+            "Value": "SsmRecordHandler"
+          },
+          {
+            "Key": "SSMDomain",
+            "Value": {"Ref": "SSMDomain"}
+          }
+        ]
+      }
+    },
     "EIP": {
       "Type": "AWS::EC2::EIP",
       "Properties": {
@@ -190,18 +256,68 @@
             "Key": "Name",
             "Value": {"Ref": "AWS::StackName"}
           },
+          {
+            "Key": "ConfigHandlerClass",
+            "Value": {"Fn::Join": [",", [
+              {"Fn::If": [
+                "EnableDnsApi",
+                "NameServerHandler",
+                {"Ref": "AWS::NoValue"}
+              ]},
+              {"Fn::If": [
+                "DomainIsNotNull",
+                "DomainHandler",
+                {"Ref": "AWS::NoValue"}
+              ]},
+              {"Fn::If": [
+                "SSDomainIsNotNull",
+                "SsnRecordHandler",
+                {"Ref": "AWS::NoValue"}
+              ]},
+              {"Fn::If": [
+                "EnableSSN",
+                "NodeHandler,SSManagerHandler",
+                {"Ref": "AWS::NoValue"}
+              ]}
+            ]]}
+          },
           {"Fn::If": [
-            "EnableSSN",
+            "DomainIsNotNull",
             {
               "Key": "Domain",
-              "Value": {"Fn::Join": ["", [
-                "{",
-                "\"name\":\"", {"Ref": "SSDomain"},
-                "\",\"nameserver\":\"", {"Ref": "SSDomainNameServer"},
-                "\",\"user\":\"", {"Ref": "SSDomainUsername"},
-                "\",\"credential\":\"", {"Ref": "SSDomainCredential"},
-                "\"}"
-              ]]}
+              "Value": {"Ref": "Domain"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableDnsApi",
+            {
+              "Key": "DomainNameServer",
+              "Value": {"Ref": "DomainNameServer"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableDnsApi",
+            {
+              "Key": "DomainNameServerUsername",
+              "Value": {"Ref": "DomainNameServerUsername"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "EnableDnsApi",
+            {
+              "Key": "DomainNameServerCredential",
+              "Value": {"Ref": "DomainNameServerCredential"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "SSDomainIsNotNull",
+            {
+              "Key": "SSDomain",
+              "Value": {"Ref": "SSDomain"}
             },
             {"Ref": "AWS::NoValue"}
           ]},
@@ -332,10 +448,7 @@
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
                   "bash shadowsocks-manager/install.sh",
-                  " -n '", {"Fn::If": ["SSMDomainIsNotNull", {"Ref": "SSMDomain"},
-                                       {"Fn::If": ["SSDomainIsNotNull", {"Ref": "SSDomain"},
-                                                   ""]}
-                                      ]}, "'",
+                  " -n '", {"Ref": "SSMDomain"}, "'",
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
                   " -e '", {"Ref": "SSMAdminEmail"}, "'",
@@ -490,12 +603,13 @@
         },
         "Environment": {
           "Variables": {
+            "STACK_ID": {"Ref": "AWS::StackId"},
             "LAMBDA_SSM_API_ARN": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]}
           }
         },
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
         "Runtime": "python3.7",
-        "Timeout": "5",
+        "Timeout": "120",
         "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
       }
     },
@@ -765,10 +879,26 @@
     "EnableLexBot": {
       "Fn::Equals": [{"Ref": "EnableLexBot"}, "1"]
     },
+    "EnableSSL": {
+      "Fn::And": [ 
+        {"Fn::Equals": [{"Ref": "EnableSSM"}, "1"]},
+        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]}
+      ]
+    },
+    "EnableDnsApi": {
+      "Fn::And": [ 
+        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "DomainNameServer"}]}]},
+        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "DomainNameServerUsername"}]}]},
+        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "DomainNameServerCredential"}]}]}
+      ]
+    },
     "LexBotSeparateRegion": {
       "Fn::Not": [{
         "Fn::Equals": [{"Ref": "AWS::Region"}, {"Ref": "LexBotRegion"}]
       }]
+    },
+    "DomainIsNotNull": {
+      "Fn::Not": [{"Fn::Equals":["", {"Ref": "Domain"}]}]
     },
     "SSMDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]
@@ -911,23 +1041,7 @@
     "SSDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "Domain name resolved to Shadowsocks server. Example: vpn.yourdomain.com"
-    },
-    "SSDomainNameServer": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Nameserver for the domain. Supported values: ['name.com']."
-    },
-    "SSDomainUsername": {
-      "Type": "String",
-      "Default": "",
-      "Description": "User identity for the Nameserver API service."
-    },
-    "SSDomainCredential": {
-      "Type": "String",
-      "Default": "",
-      "NoEcho": "true",
-      "Description": "User credential/token for the Nameserver API service."
+      "Description": "Domain name resolved to Shadowsocks server. Example: ss.yourdomain.com"
     },
     "SSManagerInterface": {
       "Type": "String",
@@ -955,6 +1069,27 @@
       "Default": "false",
       "Description": "Enable TCP fast open for Shadowsocks server. Default is 'false'."
     },
+    "Domain": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Root domain name shared by SSDomain, SSMDomain and L2TPDomain."
+    },
+    "DomainNameServer": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Domain Nameserver for SSDomain, SSMDomain and L2TPDomain. Supported Nameserver: 'name.com'."
+    },
+    "DomainNameServerUsername": {
+      "Type": "String",
+      "Default": "",
+      "Description": "User identity for the Domain Nameserver API service."
+    },
+    "DomainNameServerCredential": {
+      "Type": "String",
+      "Default": "",
+      "NoEcho": "true",
+      "Description": "User credential/token for the Domain Nameserver API service."
+    },
     "SSMAccountId": {
       "Type": "String",
       "Default": "",
@@ -963,7 +1098,7 @@
     "SSMDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "Domain Name resolved to Shadowsocks manager. Set this if don't want to use the same with Shadowsocks server. Example: vpn-admin.yourdomain.com."
+      "Description": "Domain Name resolved to Shadowsocks manager. Example: admin.ss.yourdomain.com."
     },
     "SSMPort": {
       "Type": "String",
@@ -1058,6 +1193,11 @@
       "Type": "String",
       "Default": "",
       "Description": "Region name to deploy the Lex Bot stack, leave blank to deploy the Lex Bot in the default region."
+    },
+    "AcmStackTemplateURL": {
+      "Type": "String",
+      "Default": "",
+      "Description": "ACM stack template URL, must be an AWS S3 URL."
     },
     "VpcStackTemplateURL": {
       "Type": "String",
@@ -1241,6 +1381,14 @@
     },
     "PrivateIp": {
       "Value": {"Fn::GetAtt": ["VPNServerInstance", "PrivateIp"]}
+    },
+    "AcmArn": {
+      "Condition": "SSMDomainIsNotNull",
+      "Value": {"Fn::GetAtt": ["AcmStack", "Outputs.AcmArn"]}
+    },
+    "ElbDnsName": {
+      "Condition": "SSMDomainIsNotNull",
+      "Value": {"Fn::GetAtt": ["SSMElb", "DNSName"]}
     }
   }
 }

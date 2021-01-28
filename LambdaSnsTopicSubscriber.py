@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 # Description:
-#   Receive AWS Config events through SNS, and update Domain, Node and SSManager
+#   Receive AWS Config events through SNS, update NameServer, Domain, Record, Node, and SSManager
 #   in shadowsocks-manager.
 
-import os, json
+import time, os, json
 import boto3, botocore.vendored.requests as requests
 
 print('Loading function')
@@ -23,96 +23,20 @@ def call_ssm(**kwargs):
 
 def lambda_handler(event, context):
     print('Received event: ' + json.dumps(event))
-    msg = event['Records'][0]['Sns']['Message']
-    print('Message body: ' + msg)
+    subject = event['Records'][0]['Sns']['Subject']
+    print('SNS subject: ' + subject)
+    message = event['Records'][0]['Sns']['Message']
+    print('SNS message: ' + message)
 
     try:
-        ccnm = CCNM(json.loads(msg))
-    except Exception as e:
-        print(str(e))
-        return
+        cicn_inst = CICN(json.loads(message))
+    except ValueError as e:
+        print('skip this event: ' + str(e))
 
-    if ccnm.rtype != 'AWS::EC2::Instance':
-        print('Skip message request type: ' + ccnm.rtype)
-        return
-
-    if not ccnm.is_vpn_instance():
-        print('Skip none VPN instance.')
-        return
-
-    node_name = ccnm.get_tag(name='Name')
-    if node_name:
-        node = dict(
-            name=node_name,
-            public_ip=ccnm.resource['publicIpAddress'],
-            private_ip=ccnm.resource['privateIpAddress'],
-            location=get_long_region_name(ccnm.MCI['awsRegion']),
-            is_active=(ccnm.resource['state']['name'] == 'running'),
-            sns_endpoint=ccnm.get_tag(name='SnsTopicArn'),
-            sns_access_key=ccnm.get_tag(name='AccessKeyForUserSnsPublisher'),
-            sns_secret_key=ccnm.get_tag(name='SecretKeyForUserSnsPublisher'))
+    if cicn_inst.tags.get('aws:cloudformation:stack-id') == os.getenv('STACK_ID'):
+        cicn_inst.process()
     else:
-        print('There is no tag with name "Name" on the instance. Skip to update Domain, Node and SSManager in shadowsocks-manager.')
-        return
-
-    domain_obj_str = ccnm.get_tag(name='Domain')
-    if domain_obj_str:
-        domain = json.loads(domain_obj_str)
-        domains = call_ssm(action='list', model='Domain', filter=dict(name=domain['name']))
-        if domains:
-            domain = domains[0]
-        else:
-            domain = call_ssm(action='save', model='Domain', data=domain)
-        node['domain'] = domain['id']
-    else:
-        print('There is no tag with name "Domain" on the instance. Skip to update Domain in shadowsocks-manager.')
-        domain = None
-
-    nodes = call_ssm(action='list', model='Node', filter=dict(name=node['name']))
-    if nodes:
-        node['id'] = nodes[0]['id']
-
-    if ccnm.ctype == 'CREATE':
-        node = call_ssm(action='save', model='Node', data=node)
-    elif ccnm.ctype == 'UPDATE':
-        if nodes:
-            fields = []
-            if ccnm.is_changed(name='Configuration.PublicIpAddress'):
-                fields.append('public_ip')
-            if ccnm.is_changed(name='Configuration.State.Name'):
-                fields.append('is_active')
-            if fields:
-                node = call_ssm(action='save', model='Node', method='PATCH', data=node, fields=fields)
-            else:
-                print('no need to update node.')
-        else:
-            node = call_ssm(action='save', model='Node', data=node)
-    elif ccnm.ctype == 'DELETE':
-        if nodes:
-            node['is_active'] = False
-            node = call_ssm(action='save', model='Node', method='PATCH', data=node, fields=['is_active'])
-    else:
-        print('Skip unsupported change type' + self.ctype)
-        return
-
-    ssm_obj_str = ccnm.get_tag(name='SSManager')
-    if ssm_obj_str:
-        ssm = json.loads(ssm_obj_str)
-        ssm['node'] = node['id']
-        ssms = call_ssm(action='list', model='SSManager', filter=dict(node=node['id']))
-        if ssms:
-            ssm = ssms[0]
-        else:
-            ssm = call_ssm(action='save', model='SSManager', data=ssm)
-    else:
-        print('There is no tag with name "Domain" on the instance. Skip to update SSManager in shadowsocks-manager.')
-        ssm = None
-
-    return {
-        "node": node,
-        "domain": domain if domain else None,
-        "ssm": ssm if ssm else None
-    }
+        print('skip this event: the stack id of the event does not match current stack.')
 
 def get_long_region_name(region):
     # get the long name of AWS region
@@ -120,36 +44,303 @@ def get_long_region_name(region):
     resp = client.get_parameter(Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
     return resp['Parameter']['Value']
 
-class CCNM(object):
-    # Configuration Item Change Notification Message
+def get_host_from_domain(domain):
+    items = domain.split('.')
+    bound = len(items) - 2
+    return '.'.join(items[:bound])
 
-    def __init__(self, msg):
-        if not isinstance(msg, dict):
-            raise TypeError('{} is not a Dict.'.format(type(msg)))
+def get_root_from_domain(domain):
+    items = domain.split('.')
+    bound = len(items) - 2
+    return '.'.join(items[bound:])
 
-        self.msg = msg
-        self.mtype = msg.get('messageType', None)
-        if self.mtype != 'ConfigurationItemChangeNotification':
-            raise ValueError('{} is not ConfigurationItemChangeNotification message.'.format(self.mtype))
-
-        self.MCID = msg['configurationItemDiff']
-        self.MCI = msg['configurationItem']
-        self.ctype = self.MCID['changeType']
-        self.rtype = self.MCI['resourceType']
-        if self.ctype in ['CREATE', 'UPDATE']:
-            self.resource = self.MCI['configuration']
-        elif self.ctype == 'DELETE':
-            self.resource = self.MCID['changedProperties']['Configuration']['previousValue']
+# timeout and delay: in Seconds
+def wait_call(timeout, delay, func, *args, **kwargs):
+    starter = time.time()
+    while (time.time() - starter) < timeout:
+        ret = func(*args, **kwargs)
+        if ret is not None:
+            return ret
         else:
-            self.resource = None
+            time.sleep(delay)
 
-    def get_tag(self, name):
-        result = [tag['value'] for tag in self.resource.get('tags', []) if tag['key'] == name]
-        if result:
-            return result[0]
+def create_record(domain, **kwargs):
+    root = get_root_from_domain(domain)
+    host = get_host_from_domain(domain)
+    records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
+    if records:
+        record = records[0]
+        record.update(kwargs)
+    else:
+        domains = call_ssm(action='list', model='Domain', filter=dict(name=root))
+        if domains:
+            record = dict(host=host, domain=domains[0]['id'], **kwargs)
+        else:
+            print('not found the instance of Domain: {} for creating the record: {}'.format(root, host))
+            return
+    return call_ssm(action='save', model='Record', data=record)
 
-    def is_vpn_instance(self):
-        return self.get_tag('aws:cloudformation:logical-id') == 'VPNServerInstance'
+def delete_record(domain):
+    root = get_root_from_domain(domain)
+    host = get_host_from_domain(domain)
+    records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
+    if records:
+        return call_ssm(action='delete', model='Record', data=records[0])
+
+def create_node(name, domain, **kwargs):
+    nodes = call_ssm(action='list', model='Node', filter=dict(name=name))
+    if nodes:
+        node = nodes[0]
+        node.update(kwargs)
+    else:
+        root = get_root_from_domain(domain)
+        host = get_host_from_domain(domain)
+        records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
+        if records:
+            node = dict(name=name, record=records[0]['id'], **kwargs)
+        else:
+            print('not found the instance of Record: {} for creating the node: {}'.format(domain, name))
+            return
+    return call_ssm(action='save', model='Node', data=node)
+
+def delete_node(name):
+    nodes = call_ssm(action='list', model='Node', filter=dict(name=name))
+    if nodes:
+        node = nodes[0]
+        node['is_active'] = False
+        return call_ssm(action='save', model='Node', method='PATCH', data=node, fields=['is_active'])
+
+def create_ssmanager(node_name, **kwargs):
+    ssmanagers = call_ssm(action='list', model='SSManager', filter=dict(node__name=node_name))
+    if ssmanagers:
+        ssmanager = ssmanagers[0]
+        ssmanager.update(kwargs)
+    else:
+        nodes = call_ssm(action='list', model='Node', filter=dict(name=node_name))
+        if nodes:
+            ssmanager = dict(node = nodes[0]['id'], **kwargs)
+        else:
+            print('not found the instance of Node: {} for creating the ssmanager'.format(node_name))
+            return
+    return call_ssm(action='save', model='SSManager', data=ssmanager)
+
+
+class CICN(object):
+
+    # Configuration Item Change Notification
+    type = 'ConfigurationItemChangeNotification'
+
+    def __init__(self, body):
+        if not isinstance(body, dict):
+            raise ValueError('expect: {} for body, found: {}.'.format(dict, type(body)))
+
+        self.body = body
+        if self.type != body.get('messageType'):
+            raise ValueError('expect message type: {}, found: {}.'.format(self.type, body.get('messageType')))
+
+        self.diff_item = body['configurationItemDiff']
+        self.item = body['configurationItem']
+        self.change_type = self.diff_item['changeType']
+        self.resource_type = self.item['resourceType']
+        self.resource = self._resource
+
+    @property
+    def handlers(self):
+        cls_name = self.tags.get('ConfigHandlerClass')
+        if cls_name:
+            return [globals().get(name) for name in cls_name.split(',')]
+
+    @property
+    def _resource(self):
+        if self.change_type in ['CREATE', 'UPDATE']:
+            result = self.item['configuration']
+            result.update(self.item.get('supplementaryConfiguration', {}))
+            return result
+        elif self.change_type == 'DELETE':
+            result = self.diff_item['changedProperties']['Configuration']['previousValue']
+            result.update(self.diff_item['changedProperties'].get('SupplementaryConfiguration.Tags', {}).get('previousValue', {}))
+            return result
+        else:
+            return
+
+    @property
+    def tags(self):
+        tags = self.resource.get('tags') or self.resource.get('Tags')
+        return {item['key']: item['value'] for item in tags or []}
 
     def is_changed(self, name):
-        return self.MCID['changedProperties'].get(name, {}).get('changeType') == 'UPDATE'
+        return self.diff_item['changedProperties'].get(name, {}).get('changeType') == 'UPDATE'
+
+    def process(self):
+        for handler_cls in self.handlers or []:
+            handler_inst = handler_cls(self)
+            result = getattr(handler_inst, self.change_type.lower())()
+            print(handler_cls, result)
+
+
+class Handler(object):
+
+    resource_type = None
+
+    def __init__(self, cicn):
+        if self.resource_type != cicn.resource_type:
+            raise RuntimeError('expect resource type: {}, but found: {}'.format(self.resource_type, cicn.resource_type))
+
+        self.cicn = cicn
+
+    def create(self, cicn):
+        pass
+
+    def update(self, cicn):
+        pass
+
+    def delete(self, cicn):
+        pass
+
+
+class NameServerHandler(Handler):
+
+    resource_type = 'AWS::EC2::Instance'
+
+    @property
+    def name(self):
+        return self.cicn.tags['DomainNameServer']
+
+    @property
+    def user(self):
+        return self.cicn.tags['DomainNameServerUsername']
+
+    @property
+    def credential(self):
+        return self.cicn.tags['DomainNameServerCredential']
+
+    def create(self):
+        return self.update()
+
+    def update(self):
+        nameserver = dict(user=self.user, credential=self.credential)
+        nameservers = call_ssm(action='list', model='NameServer', filter=dict(name=self.name))
+        if nameservers:
+            nameserver['id'] = nameservers[0]['id']
+
+        return call_ssm(action='save', model='NameServer', method='PATCH', data=nameserver, fields=['user','credential'])
+
+
+class DomainHandler(Handler):
+
+    resource_type = 'AWS::EC2::Instance'
+
+    @property
+    def domain(self):
+        return self.cicn.tags['Domain']
+
+    def create(self):
+        domain = dict(name=self.domain)
+        domains = call_ssm(action='list', model='Domain', filter=dict(name=domain))
+        if domains:
+            domain['id'] = domains[0]['id']
+
+        nameserver = self.cicn.tags.get('DomainNameServer')
+        nameservers = call_ssm(action='list', model='NameServer', filter=dict(name=nameserver))
+        if nameservers:
+            domain['nameserver'] = nameservers[0]['id']
+
+        return call_ssm(action='save', model='Domain', data=domain)
+
+    def update(self):
+        return self.create()
+
+
+class SsmRecordHandler(Handler):
+
+    resource_type = 'AWS::ElasticLoadBalancing::LoadBalancer'
+
+    @property
+    def domain(self):
+        return self.cicn.tags['SSMDomain']
+
+    def create(self):
+        # wait call here, until to get a successful result, because ELB events may come ealier than EC2 events,
+        # and therefore EC2 events are responsible for creating Domain instance which is used to create this record.
+        return wait_call(110, 3, create_record, self.domain, type='CNAME', answer=self.cicn.resource['dnsname'])
+
+    def update(self):
+        return self.create()
+
+
+class L2tpRecordHandler(Handler):
+
+    resource_type = 'AWS::EC2::Instance'
+
+    @property
+    def domain(self):
+        return self.cicn.tags['L2TPDomain']
+
+    def create(self):
+        return create_record(self.domain, type='A', answer=self.cicn.resource['publicIpAddress'])
+
+    def update(self):
+        return self.create()
+
+
+class SsnRecordHandler(Handler):
+
+    resource_type = 'AWS::EC2::Instance'
+
+    @property
+    def domain(self):
+        return self.cicn.tags['SSDomain']
+
+    def create(self):
+        return create_record(self.domain, type='A', answer=self.cicn.resource['publicIpAddress'])
+
+    def update(self):
+        return self.create()
+
+
+class NodeHandler(Handler):
+
+    resource_type = 'AWS::EC2::Instance'
+
+    @property
+    def domain(self):
+        return self.cicn.tags['SSDomain']
+
+    @property
+    def node_name(self):
+        return self.cicn.tags['Name']
+
+    def create(self):
+        return create_node(
+            self.node_name,
+            self.domain,
+            public_ip=self.cicn.resource['publicIpAddress'],
+            private_ip=self.cicn.resource['privateIpAddress'],
+            location=get_long_region_name(self.cicn.item['awsRegion']),
+            is_active=(self.cicn.resource['state']['name'] == 'running'),
+            sns_endpoint=self.cicn.tags.get('SnsTopicArn'),
+            sns_access_key=self.cicn.tags.get('AccessKeyForUserSnsPublisher'),
+            sns_secret_key=self.cicn.tags.get('SecretKeyForUserSnsPublisher'))
+
+    def update(self):
+        return self.create()
+
+
+class SSManagerHandler(Handler):
+
+    resource_type = 'AWS::EC2::Instance'
+
+    @property
+    def node_name(self):
+        return self.cicn.tags['Name']
+
+    @property
+    def ssmanager(self):
+        return self.cicn.tags['SSManager']
+
+    def create(self):
+        ssmanager = json.loads(self.ssmanager)
+        return create_ssmanager(self.node_name, **ssmanager)
+
+    def update(self):
+        return self.create()
