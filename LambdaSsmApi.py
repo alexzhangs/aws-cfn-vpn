@@ -2,21 +2,21 @@
 
 '''
 Provide the Lambda interface for the shadowsocks-manager REST APIs:
-Domain, Node and SSManager.
+NameServer, Domain, Record, Node and SSManager.
 
 Example:
 
 import boto3
 client = boto3.client('lambda')
 response = client.invoke(
-    FunctionName='ARN-of-this-function',
+    FunctionName='<ARN-of-the-Lambda>', # REQUIRED
     Payload=json.dumps(
-        action='list|save',             # REQUIRED
-        model='Domain|Node|SSManager',  # REQUIRED
-        data={name=value, ...},         # REQUIRED for action `save`
+        action='list|save|delete',      # REQUIRED
+        model='<MODEL>',                # REQUIRED, Values: NameServer,Domain,Record,Node,SSManager
+        data={<name>=<value>, ...},     # REQUIRED for action `save`
         method='post|put|patch',        # OPTIONAL for action `save`
-        fields=[name, ...],             # OPTIONAL for action `save`
-        filter={name=value, ...}        # OPTIONAL for action `list`
+        fields=[<name>, ...],           # OPTIONAL for action `save`
+        filter={<name>=<value>, ...}    # OPTIONAL for action `list`
     )
 )
 obj = response['Payload']
@@ -55,6 +55,10 @@ def lambda_handler(event, context):
     elif action == 'save':
         inst = cls(**event['data'])
         inst.save(method=event.get('method'), fields=event.get('fields'))
+        return inst.serialize()
+    elif action == 'delete':
+        inst = cls(**event['data'])
+        inst.delete()
         return inst.serialize()
     else:
         raise ValueError('{}: invalid action.'.format(action))
@@ -141,6 +145,11 @@ class BaseModel(object):
         if result: self.__dict__.update(result)
         return self
 
+    def delete(self):
+        result = self.API.call('delete', self.API.get_url(self.id))
+        if result: self.__dict__.update(result)
+        return self
+
     def serialize(self, fields=None):
         data = {}
         for k, v in self.__dict__.items():
@@ -148,9 +157,17 @@ class BaseModel(object):
             if isinstance(v, (int, str)): data[k] = v
         return data
 
+class NameServer(BaseModel):
+    class API(BaseModel.API):
+        path = '/domain/nameserver/'
+
 class Domain(BaseModel):
     class API(BaseModel.API):
-        path = '/domain/'
+        path = '/domain/domain/'
+
+class Record(BaseModel):
+    class API(BaseModel.API):
+        path = '/domain/record/'
 
 class Node(BaseModel):
     class API(BaseModel.API):
