@@ -281,7 +281,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-acm
 1. Create an EC2 key pair in AWS and save it to ~/.ssh.
 
    ```bash
-   $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> -m 0377 <keyname>
+   $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> <keyname>
    ```
 
 1. Edit `sample-ssm.conf`.
