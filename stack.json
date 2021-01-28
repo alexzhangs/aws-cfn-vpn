@@ -426,7 +426,7 @@
             "SSM_ADMIN_PASSWORD": {"Ref": "SSMAdminPassword"}
           }
         },
-        "Handler": "index.lambda_handler",
+        "Handler": "LambdaSsmApi.lambda_handler",
         "Runtime": "python3.7",
         "Timeout": "10",
         "Role": {"Fn::GetAtt": ["LambdaSsmApiExecutionRole", "Arn"]}
@@ -720,7 +720,7 @@
             "LAMBDA_SSM_API_ARN": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]}
           }
         },
-        "Handler": "index.lambda_handler",
+        "Handler": "LambdaLexBot.lambda_handler",
         "Runtime": "python3.7",
         "Timeout": "10",
         "Role": {"Fn::GetAtt": ["LambdaLexBotExecutionRole", "Arn"]}
