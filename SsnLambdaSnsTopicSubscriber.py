@@ -37,7 +37,7 @@ def lambda_handler(event, context):
     print('Message body: ' + message)
 
     cfn = boto3.resource('cloudformation')
-    stack = cfn.Stack(os.getenv('SSN_STACK_ID'))
+    stack = cfn.Stack(os.getenv('STACK_ID'))
 
     # convert to lower and remove any [_- \t]
     message = message.lower().translate({ord(i):None for i in ['_', '-', ' ', '\t']})

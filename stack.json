@@ -603,7 +603,7 @@
         },
         "Environment": {
           "Variables": {
-            "SSN_STACK_ID": {"Ref": "AWS::StackId"}
+            "STACK_ID": {"Ref": "AWS::StackId"}
           }
         },
         "Handler": "SsnLambdaSnsTopicSubscriber.lambda_handler",
