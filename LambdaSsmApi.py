@@ -30,18 +30,18 @@ print('Loading function')
 
 def lambda_handler(event, context):
     print('Received event: ' + json.dumps(event))
-    ec2 = Ec2Instance(os.getenv('SSM_STACK_ID'),
-        os.getenv('SSM_INSTANCE_LOGICAL_ID'))
 
-    if ec2 is None:
-        raise Exception('{}: not found the EC2 instance'.format(os.getenv('SSM_INSTANCE_LOGICAL_ID')))
+    stack_id = os.getenv('STACK_ID')
+    ssm_ec2_logical_id = os.getenv('SSM_EC2_LOGICAL_ID')
+    ssm_ec2_inst = get_ec2_inst_of_cfn_stack(stack_id, ssm_ec2_logical_id)
 
-    print('wait here, the CREATE notification of config may come earlier.')
-    ec2.wait_until_running()
-    print('go on now.')
+    # the Lambda functiion may be called before the instance is ready
+    print('checking EC2 instance status, and will wait until it comes to RUNNING.')
+    ssm_ec2_inst.wait_until_running()
+    print('check passed.')
 
     BaseAPI.backend = Backend(
-        host=ec2.public_ip_address or os.getenv('SSM_DOMAIN'),
+        host=ssm_ec2_inst.public_ip_address,
         port=os.getenv('SSM_PORT'),
         user=os.getenv('SSM_ADMIN_USERNAME'),
         password=os.getenv('SSM_ADMIN_PASSWORD')
@@ -63,13 +63,15 @@ def lambda_handler(event, context):
     else:
         raise ValueError('{}: invalid action.'.format(action))
 
-class Ec2Instance(object):
-    def __new__(self, stack_id, logical_id):
-        ec2 = boto3.resource('ec2')
-        insts = ec2.instances.filter(Filters=[
-            dict(Name='tag:aws:cloudformation:stack-id', Values=[stack_id]),
-            dict(Name='tag:aws:cloudformation:logical-id', Values=[logical_id])])
-        for inst in insts: return inst
+def get_ec2_inst_of_cfn_stack(stack_id, logical_id):
+    ec2 = boto3.resource('ec2')
+    insts = ec2.instances.filter(Filters=[
+        dict(Name='tag:aws:cloudformation:stack-id', Values=[stack_id]),
+        dict(Name='tag:aws:cloudformation:logical-id', Values=[logical_id])])
+    for inst in insts: pass
+    try: return inst
+    except NameError:
+        raise RuntimeError('not found the EC2 instance: {}, in CloudFormation stack: {}'.format(logical_id, stack_id))
 
 class Backend(object):
     def __init__(self, host, port=80, schema='http', user=None, password=None):
