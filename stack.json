@@ -278,6 +278,11 @@
                 "EnableSSN",
                 "NodeHandler,SSManagerHandler",
                 {"Ref": "AWS::NoValue"}
+              ]},
+              {"Fn::If": [
+                "L2TPDomainIsNotNull",
+                "L2tpRecordHandler",
+                {"Ref": "AWS::NoValue"}
               ]}
             ]]}
           },
@@ -318,6 +323,14 @@
             {
               "Key": "SSDomain",
               "Value": {"Ref": "SSDomain"}
+            },
+            {"Ref": "AWS::NoValue"}
+          ]},
+          {"Fn::If": [
+            "L2TPDomainIsNotNull",
+            {
+              "Key": "L2TPDomain",
+              "Value": {"Ref": "L2TPDomain"}
             },
             {"Ref": "AWS::NoValue"}
           ]},
@@ -906,6 +919,9 @@
     "SSDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSDomain"}]}]
     },
+    "L2TPDomainIsNotNull": {
+      "Fn::Not": [{"Fn::Equals":["", {"Ref": "L2TPDomain"}]}]
+    },
     "SSMIFLocalhost": {
       "Fn::Equals": [{"Ref": "SSManagerInterface"}, "1"]
     },
@@ -1125,6 +1141,11 @@
       "Type": "String",
       "Default": "UTC",
       "Description": "Prefered Time Zone. Default is 'UTC'."
+    },
+    "L2TPDomain": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Domain Name resolved to L2TP server. Example: vpn.yourdomain.com."
     },
     "L2TPUsername": {
       "Type": "String",

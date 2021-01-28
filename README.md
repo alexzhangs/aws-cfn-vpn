@@ -25,7 +25,7 @@ Shadowsocks-libev:
 * Multi nodes(across multi AWS accounts).
 * Active/Inactive users and nodes.
 * Heartbeat to detect the port alive on the node.
-* Auto-create the DNS records for the domains of web console,
+* Auto-create the DNS records for the domains of web console, L2TP,
   and Shadowsocks nodes in [name.com](https://name.com).
 * Auto-sync the node info to shadowsocks-manager.
 * Auto-sync the node IP address to [name.com](https://name.com).
@@ -298,6 +298,7 @@ $ git clone https://github.com/alexzhangs/aws-cfn-acm
     "Domain=<yourdomain.com>"
     "SSMDomain=<admin.ss.yourdomain.com>"
     "SSMAdminEmail=<admin@vpn.yourdomain.com>"
+    "L2TPDomain=<vpn.yourdomain.com>"
     ```
     HTTPS will be enabled if `SSMDomain` is specified.
 
