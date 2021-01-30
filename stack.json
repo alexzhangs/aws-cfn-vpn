@@ -1387,6 +1387,10 @@
       "Condition": "EnableVpcPeerAccepter",
       "Value": {"Fn::GetAtt": ["VpcPeerAccepterStack", "Outputs.IamPeerRoleArn"]}
     },
+    "VpcPeerAccepterRegion": {
+      "Condition": "EnableVpcPeerAccepter",
+      "Value": {"Ref": "AWS::Region"}
+    },
     "VpcPeerAccepterSqsQueueUrl": {
       "Condition": "EnableVpcPeerAccepter",
       "Value": {"Fn::GetAtt": ["VpcPeerAccepterStack", "Outputs.SqsPeerRouteQueueUrl"]}

@@ -364,19 +364,19 @@ $ git clone https://github.com/alexzhangs/aws-cfn-acm
     Set below values by the output of the manager stack.
 
     ```ini
-    "VpcPeerAccepterVpcId=<your_accepter_vpc_id>"
-    "VpcPeerAccepterRoleArn=<your_rolearn_of_accepter_stack>"
-    "VpcPeerAccepterSqsQueueUrl=<your_sqs_queue_url_of_accepter_stack>"
-    "SnsTopicArn=<your_snstopicarn_of_ssm_stack>"
+    "SSMAccountId=<AccountId>"
+    "VpcPeerAccepterRegion=<VpcPeerAccepterRegion>"
+    "VpcPeerAccepterVpcId=<VpcId>"
+    "VpcPeerAccepterSqsQueueUrl=<VpcPeerAccepterSqsQueueUrl>"
+    "VpcPeerAccepterRoleArn=<IamPeerRoleArn>"
+    "SnsTopicArn=<SnsTopicArnForConfig>"
     ```
 
-    Replace the values wrapped by '<>' with your preferred.
+    Set below values with your preferred.
 
     ```ini
     "SSDomain=<ss.yourdomain.com>"
     "KeyPairName=<your_aws_ec2_key_pair_name>"
-    "VpcPeerAccepterRegion=<your_accepter_region>"
-    "SSMAccountId=<your_aws_account_id_of_owner_of_manager_stack>"
     ```
 
     Change any other settings as you wish.
