@@ -478,6 +478,7 @@ level.
 
 ## TODO
 
+* Add the support for AMI Amazon Linux 2.
 
 ## Troubleshooting
 
