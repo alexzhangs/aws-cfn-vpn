@@ -1309,6 +1309,7 @@
         "location": "EU (Ireland)"
       },
       "eu-west-2": {
+        "AMI": "ami-098828924dc89ea4a",
         "endpoint": "rds.eu-west-2.amazonaws.com",
         "location": "EU (London)"
       },
