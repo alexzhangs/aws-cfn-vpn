@@ -59,12 +59,15 @@ aws-cfn-vpn (github)
 ├── aws-ec2-shadowsocks-libev (github)
 │   └── shadowsocks-libev (yum)
 ├── shadowsocks-manager (github)
-│   └── [aws-ec2-ses (github, manually setup involved)]
+│   ├── django (pip)
+│   └── [aws-ec2-ses (github)] - Manually setup involved
 ├── aws-ec2-xl2tpd (github)
 │   ├── openswan (yum)
 │   └── xl2tpd (yum)
 ├── chap-manager (github)
 └── aws-ec2-supervisor (github)
+     ├── supervisor (pip)
+     └── supervisord (github) - The initd script
 ```
 
 ## Insight
@@ -495,12 +498,16 @@ gates.
    1. [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc)
    1. [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter)
    1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester)
+   1. [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider)
+   1. [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot)
+   1. [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm)
    1. [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
    1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
    1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses)
    1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd)
    1. [chap-manager](https://github.com/alexzhangs/chap-manager)
    1. [aws-ec2-supervisor](https://github.com/alexzhangs/aws-ec2-supervisor)
+   1. [supervisord](https://github.com/alexzhangs/supervisord)
 
 1. Failed to delete the manager stack.
 
@@ -541,7 +548,7 @@ gates.
 
    ```
    Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
+   Amazon Linux 2 AMI (HVM), SSD Volume Type
    ```
 
-   Some of Amazon Linux 2 AMIs have been proved not working.
    Feel free to open pull requests for the verified compatible AMIs.
