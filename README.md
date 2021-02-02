@@ -347,14 +347,18 @@ $ git clone https://github.com/alexzhangs/aws-cfn-acm
 
 1. Verify the manager stack deployment.
 
-   Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
+    Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
 
-   Log in with the default username and password if you didn't change it in the sample conf file.
+    Or visit `https://<admin.ss.yourdomain.com>/admin`. Note that you
+    must use the HTTPS protocol with using the domain, the HTTP protocol
+    won't work with it.
 
-   ```ini
-   "SSMAdminUsername=admin"
-   "SSMAdminPassword=passw0rd"
-   ```
+    Log in with the default username and password if you didn't change it in the sample conf file.
+
+    ```ini
+    "SSMAdminUsername=admin"
+    "SSMAdminPassword=passw0rd"
+    ```
 
 ### Create the Node Stack
 
