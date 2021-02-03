@@ -605,7 +605,7 @@
         },
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
         "Runtime": "python3.7",
-        "Timeout": "120",
+        "Timeout": "180",
         "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
       }
     },

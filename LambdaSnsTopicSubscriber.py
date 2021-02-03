@@ -262,7 +262,7 @@ class SsmRecordHandler(Handler):
     def create(self):
         # wait call here, until to get a successful result, because ELB events may come ealier than EC2 events,
         # and therefore EC2 events are responsible for creating Domain instance which is used to create this record.
-        return wait_call(110, 3, create_record, self.domain, type='CNAME', answer=self.cicn.resource['dnsname'])
+        return wait_call(180, 3, create_record, self.domain, type='CNAME', answer=self.cicn.resource['dnsname'])
 
     def update(self):
         return self.create()
