@@ -61,12 +61,17 @@ def wait_call(timeout, delay, func, *args, **kwargs):
         else:
             time.sleep(delay)
 
-def create_record(domain, **kwargs):
+def create_record(domain, append=False, **kwargs):
     root = get_root_from_domain(domain)
     host = get_host_from_domain(domain)
     records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
     if records:
         record = records[0]
+        if append:
+            old_set = set(record['answer'].lower().split(','))
+            new_set = set(kwargs.pop('answer').lower().split(','))
+            if new_set not in old_set:
+                record['answer'] = ','.join(old_set.union(new_set))
         record.update(kwargs)
     else:
         domains = call_ssm(action='list', model='Domain', filter=dict(name=root))
@@ -289,7 +294,7 @@ class SsnRecordHandler(Handler):
         return self.cicn.tags['SSDomain']
 
     def create(self):
-        return create_record(self.domain, type='A', answer=self.cicn.resource['publicIpAddress'])
+        return create_record(self.domain, append=True, type='A', answer=self.cicn.resource['publicIpAddress'])
 
     def update(self):
         return self.create()
