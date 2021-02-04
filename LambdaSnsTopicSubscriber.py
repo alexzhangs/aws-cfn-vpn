@@ -33,10 +33,7 @@ def lambda_handler(event, context):
     except ValueError as e:
         print('skip this event: ' + str(e))
 
-    if cicn_inst.tags.get('aws:cloudformation:stack-id') == os.getenv('STACK_ID'):
-        cicn_inst.process()
-    else:
-        print('skip this event: the stack id of the event does not match current stack.')
+    cicn_inst.process()
 
 def get_long_region_name(region):
     # get the long name of AWS region
