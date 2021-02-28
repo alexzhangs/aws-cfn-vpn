@@ -8,7 +8,7 @@ and XL2TPD, and is trying to make the deployment as easier as possible.
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
 which is a web-based Shadowsocks management tool for multi-user and traffic statistics,
-support multi-node, creating DNS records and syncing IPs to name.com.
+support multi-node, creating DNS records, and syncing IPs to name.com.
 
 ## Services List
 
@@ -25,7 +25,7 @@ Shadowsocks-libev:
 * Multi nodes(across multi AWS accounts).
 * Active/Inactive users and nodes.
 * Heartbeat to detect the port alive on the node.
-* Auto-create the DNS records for the domains of web console, L2TP,
+* Auto-create the DNS records for the domains of the web console, L2TP,
   and Shadowsocks nodes in [name.com](https://name.com).
 * Auto-sync the node info to shadowsocks-manager.
 * Auto-sync the node IP address to [name.com](https://name.com).
@@ -75,7 +75,7 @@ aws-cfn-vpn (github)
 ### stack.json
 
 This repo contains a standard AWS CloudFormation template `stack.json`
-which can be deployed with AWS web console, AWS CLI or any other AWS
+which can be deployed with AWS web console, AWS CLI, or any other AWS
 CloudFormation compatible tool.
 
 This template will create an AWS CloudFormation stack, including
@@ -95,7 +95,7 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
 * 1 nested VPC peer accepter stack if set `EnableVpcPeerAccepter=1`.
 
-    It accepts the VPC peer connection request from another VPC. The VPC peer connection is used to create a private network connection between manager stack and node stack, to protect the multi-user API from opening to the public internet.
+    It accepts the VPC peer connection request from another VPC. The VPC peer connection is used to create a private network connection between the manager stack and node stack, to protect the multi-user API from opening to the public internet.
 
     For the details check
     [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
@@ -113,7 +113,7 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
     events to the manager stack so that the node can be registered
     automatically.
 
-    Following chart shows how it works.
+    The following chart shows how it works.
 
     | Node Stacks | Manager Stack |
     |---|---|
@@ -126,7 +126,7 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     The chatbot is used to manage the node stacks.
 
-    Following chart shows the deployment topology and the control flow.
+    The following chart shows the deployment topology and the control flow.
 
     | 3rd Part Apps | Manager Stack | Node Stacks |
     |---|---|---|
@@ -138,9 +138,9 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 * 1 nested ACM service stack if set `EnableSSM=1` and `SSMDomain` is
 used.
 
-    It setup AWS Certificate Manager service on the manager stack, to automate certificates provision.
+    It set up AWS Certificate Manager service on the manager stack, to automate certificates provision.
 
-    Following chart shows how it works.
+    The following chart shows how it works.
 
     | Manager Stacks | 3rd DNS Service Provider |
     |---|---|
@@ -161,7 +161,7 @@ There are 2 classic deployment methods:
 
 1. Deploy a single stack with everything inside, including
 shadowsocks-manager, Shadosocks node, and XL2TPD. This method is not
-recommanded, the shadowsocks-manager will be unreachable once the
+recommended, the shadowsocks-manager will be unreachable once the
 node's network goes wrong.
 There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
 
@@ -193,32 +193,32 @@ If you are deploying a single stack with everything inside, then one domain host
 
 ### Prepare at local
 
-Several tools were needed in this deployment, below shows how to get
+Several tools are needed in the deployment, below shows how to get
 them ready.
 
 1. awscli: Install it from [here](https://aws.amazon.com/cli/).
 
 1. [xsh](https://github.com/alexzhangs/xsh): xsh is a bash library framework.
 
-```sh
-git clone https://github.com/alexzhangs/xsh
-bash xsh/install.sh
-```
+    ```sh
+    git clone https://github.com/alexzhangs/xsh
+    bash xsh/install.sh
+    ```
 
 1. [xsh-lib/aws](https://github.com/xsh-lib/aws): xsh-lib/aws is a
 library or xsh.
 
-```bash
-xsh load xsh-lib/aws
-```
+    ```bash
+    xsh load xsh-lib/aws
+    ```
 
 Note: If you are proceeding without the tools, then you will have to manually
-edit config files and upload templates and Lambda function to S3, and handle
-the parameters for each nested templates.
+edit config files and upload templates and Lambda functions to S3, and handle
+the parameters for each nested template.
 
 ### Prepare AWS Accounts
 
-1. Sign up [AWS accounts](https://aws.amanzon.com) if you don't have.
+1. Sign up [AWS accounts](https://aws.amanzon.com) if you don't have one.
 
     You will need more than one account if planning to deploy multi-node stacks.
 
@@ -333,7 +333,7 @@ aws-cfn-vpn/vpn-2-sample.conf
 
 ### Create the manager stack and the node stacks
 
-Following command will create three CloudFormation stacks by using
+The following command will create three CloudFormation stacks by using
 the three AWS CLI profiles and the three config files created in the
 earlier steps.
 
@@ -341,15 +341,15 @@ earlier steps.
 $ bash aws-cfn-vpn/create.sh -x 0-2 -p "profile-0 profile-1 profile-2" aws-cfn-vpn/vpn-{0..2}-sample.conf
 ```
 
-If HTTPS is enabled but the DNS service API is not, you need to
-manually create DNS record to validate the new created ACM
+If HTTPS is enabled, but the DNS service API is not, you need to
+manually create a DNS record to validate the newly created ACM
 certificate. Visit
 [AWS ACM service](https://console.aws.amazon.com/acm)
 console to obtain the DNS record info. Once the ACM certificate is
-validated successfully, you can proceed.
+validated successfully, the creation will proceed.
 
-The command takes around 30 minutes to complete, and if everything
-goes smooth, the 3 stacks and all services should be ready after
+The command takes around 30 minutes to complete. If everything
+goes smoothly, the three stacks and all services should be ready after
 the command is completed. You can move to the next section.
 
 ### Verify the manager stack deployment.
@@ -369,10 +369,10 @@ Log in with the default username and password:
 
 ## Maintain DNS Records
 
-If the DNS service API is enabled , then you can skip following steps,
+If the DNS service API is enabled, then you can skip the following steps,
 shadowsocks-manager should have taken care of the DNS records.
 
-If you are not in the case above, proceed with following steps:
+If you are not in the case above, proceed with the following steps:
 
 1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
 pointing to the public IP of EC2 Instance of manager stack.
@@ -382,7 +382,7 @@ pointing to the public IP of EC2 Instance of manager stack.
 1. Create a DNS `A record`, such as `vpn`.yourdomain.com, pointing to the
 public IP of EC2 Instance of manager stack.
 
-    Use this domain to access to the L2TP service.
+    Use this domain to access the L2TP service.
 
 1. Create a DNS `A record`, such as `ss`.yourdomain.com pointing to
 the public IP of EC2 Instance of node stack.
@@ -391,7 +391,7 @@ the public IP of EC2 Instance of node stack.
 
 ## Configure shadowsocks-manager
 
-1. Log in the shadowsocks-manager web console back at
+1. Log in to the shadowsocks-manager web console back at
 `https://admin.ss.yourdomain.com/admin` after the DNS records get
 effective.
 
@@ -399,10 +399,10 @@ effective.
 list, all node stacks you created should have been registered as nodes
 automatically.
 
-    Note: The registration relies on the AWS Config, SNS and Lambda services,
+    Note: The registration relies on the AWS Config, SNS, and Lambda services,
 it takes up to around 15 minutes to capture and deliver the config changes.
 
-1. Now you are ready to create Shadowsocks accounts in the web
+1. Now you are ready to create Shadowsocks accounts on the web
    console, or import the previously exported accounts back.
 
 ## Verify XL2TPD services
@@ -426,7 +426,7 @@ The default credential defined in the conf file is:
 
 ## Tips
 
-1. How to change the IP address of EC2 instance of the Manager stack
+1. How to change the IP address of the EC2 instance of the Manager stack
    or the Node stack?
 
     Update the stack with a new value of parameter `EipDomain`, switch the
@@ -438,7 +438,7 @@ and associate it, then release the old. This will cause an error
 in locating the original EIP resource when operating on the stack
 level.
 
-    Note: Use Lex chatbot to change the IP address of EC2 instance of
+    Note: Use Lex chatbot to change the IP address of the EC2 instance of
     the Node stack.
 
 1. How to enable the HTTPS(SSL certificate) for the Manager stack?
@@ -456,12 +456,12 @@ level.
 
 1. The stack ends up at 'CREATE_FAILED' status.
 
-    Log in the AWS web console, go to CloudFormation, check the event
+    Log in to the AWS web console, go to CloudFormation, check the event
     list of the stack, found the failed events to locate the root reason,
     check the event list of the nested stack if necessary.
 
-1. For any problem related with the repoes that aws-cfn-vpn depends
-on, check with the depended repoes, here is the quick dial of star
+1. For any problem related to the repos that aws-cfn-vpn depends
+on, check with the depended repos, here is the quick dial of star
 gates.
 
    1. [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc)
