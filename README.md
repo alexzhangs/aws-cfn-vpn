@@ -3,7 +3,7 @@
 AWS CloudFormation Stack for VPN services.
 
 This Repo use AWS CloudFormation to automate the deployment of Shadowsocks
-and XL2TPD, and is trying to make the deployment as easier as possible.
+and L2TPD, and is trying to make the deployment as easier as possible.
 
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
@@ -13,7 +13,7 @@ support multi-node, creating DNS records, and syncing IPs to name.com.
 ## Services List
 
 * Shadowsocks-libev
-* XL2TPD
+* L2TPD
 
 ## Features
 
@@ -109,13 +109,12 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
 * 1 nested Config service stack if set `EnableConfigProvider=1`.
 
-    It setup Config service on the node stack, to send node change
-    events to the manager stack so that the node can be registered
-    automatically.
+    It setup Config service, to send the config events to the manager
+    stack so that the EC2 instances and EIP can be registered automatically.
 
     The following chart shows how it works.
 
-    | Node Stacks | Manager Stack |
+    | Manager&Node Stacks | Manager Stack |
     |---|---|
     | Config events → S3 bucket → | → SNS -> Lambda → SSM REST APIs |
 
@@ -160,12 +159,12 @@ used.
 There are 2 classic deployment methods:
 
 1. Deploy a single stack with everything inside, including
-shadowsocks-manager, Shadosocks node, and XL2TPD. This method is not
+shadowsocks-manager, Shadosocks node, and L2TPD. This method is not
 recommended, the shadowsocks-manager will be unreachable once the
 node's network goes wrong.
 There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
 
-1. Deploy at least 2 stacks, one for shadowsocks-manager and XL2TPD,
+1. Deploy at least 2 stacks, one for shadowsocks-manager and L2TPD,
 one or more for Shadowsocks nodes. Each one needs to be deployed in a
 different AWS account. That allows you to balance network traffic between AWS accounts.
 There are 3 sample config files for this.
@@ -181,7 +180,7 @@ There are 3 DNS hostnames needed for your services:
 1. The domain name pointing to shadowsocks-manager service, such
 as `admin.ss.yourdomain.com`.
 
-1. The domain name pointing to XL2TPD services, such as
+1. The domain name pointing to L2TPD services, such as
 `vpn.yourdomain.com`.
 
 1. The domain name pointing to Shadowsocks nodes, such as
@@ -374,8 +373,8 @@ shadowsocks-manager should have taken care of the DNS records.
 
 If you are not in the case above, proceed with the following steps:
 
-1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
-pointing to the public IP of EC2 Instance of manager stack.
+1. Create a DNS `CNAME record`, such as `admin.ss`.yourdomain.com,
+pointing to the public DNS name of the ELB of manager stack.
 
     Use this domain to access the shadowsocks-manager.
 
@@ -405,11 +404,11 @@ it takes up to around 15 minutes to capture and deliver the config changes.
 1. Now you are ready to create Shadowsocks accounts on the web
    console, or import the previously exported accounts back.
 
-## Verify XL2TPD services
+## Verify L2TPD services
 
-Use your XL2TPD client to connect to the service.
+Use your L2TPD client to connect to the service.
 
-With macOS High Sierra, you can choose the built-in XL2TPD client:
+With macOS High Sierra, you can choose the built-in L2TPD client:
 
 ```ini
 Interface: VPN
@@ -438,8 +437,10 @@ and associate it, then release the old. This will cause an error
 in locating the original EIP resource when operating on the stack
 level.
 
-    Note: Use Lex chatbot to change the IP address of the EC2 instance of
-    the Node stack.
+    For the EC2 instance of the Node stacks, the following methods are recommended:
+
+    * Use the admin web console at `Home › Shadowsocks › Shadowsocks Nodes`.
+    * Use the Lex chatbot.
 
 1. How to enable the HTTPS(SSL certificate) for the Manager stack?
 
@@ -484,12 +485,14 @@ gates.
 
    Solution:
 
-   Manually delete all existing peer connections belong to that stack first. This can be done with AWS web console, or the CLI:
+   1. Delete all the node stacks before to delete the manager stack.
 
-   ```sh
-   $ aws ec2 describe-vpc-peering-connections
-   $ aws ec2 delete-vpc-peering-connection --vpc-peering-connection-id <peering-connection-id>
-   ```
+   2. Manually delete all existing peer connections belong to that stack first. This can be done with AWS web console, or the CLI:
+
+        ```sh
+        $ aws ec2 describe-vpc-peering-connections
+        $ aws ec2 delete-vpc-peering-connection --vpc-peering-connection-id <peering-connection-id>
+        ```
 
 1. Encountering errors while executing EC2 userdata.
 
