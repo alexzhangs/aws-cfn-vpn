@@ -138,7 +138,7 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 * 1 nested ACM service stack if set `EnableSSM=1` and `SSMDomain` is
 used.
 
-    It setup AWS Certificate Manager service on the manager stack, to automate certificates provision. 
+    It setup AWS Certificate Manager service on the manager stack, to automate certificates provision.
 
     Following chart shows how it works.
 
@@ -213,8 +213,8 @@ xsh load xsh-lib/aws
 ```
 
 Note: If you are proceeding without the tools, then you will have to manually
-upload templates and Lambda function to S3, and handle the parameters
-for each nested templates.
+edit config files and upload templates and Lambda function to S3, and handle
+the parameters for each nested templates.
 
 ### Prepare AWS Accounts
 
@@ -253,10 +253,16 @@ for each nested templates.
 
 1. Create a profile for each access key created in the last step.
 
-   A region is needed to be set in this step.
+    Following commands will create three profiles with names:
+    `profile-0`, `profile-1`, and `profile-2` which will be used in
+    the rest of this document.
+
+    A region is needed to be set in this step.
 
    ```sh
-   $ aws configure --profile=<your_profile_name>
+   $ aws configure --profile=profile-0
+   $ aws configure --profile=profile-1
+   $ aws configure --profile=profile-2
    ```
 
 ### Get the code
@@ -273,44 +279,32 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 $ git clone https://github.com/alexzhangs/aws-cfn-acm
 ```
 
-### Create the Manager Stack
+### Create the aws-cfn-vpn config files
 
-1. Activate your AWS profile.
+The config files are needed by `aws-cfn-vpn` to deploy the
+CloudFormation stacks. Review the options listed below and choose one from
+them:
 
-   ```bash
-   $ xsh aws/cfg/activate <your_profile>
-   ```
+1. Basic: Create three config files, one is for the
+    manager stack, the other two are for the node stacks.
 
-1. Create an EC2 key pair in AWS and save it to ~/.ssh.
-
-   ```bash
-   $ xsh aws/ec2/key/create -f ~/.ssh/<keyname> <keyname>
-   ```
-
-1. Edit `sample-ssm.conf`.
-
-    Replace the values wrapped by '<>' with your preferred.
-
-    ```ini
-    "KeyPairName=<your_aws_ec2_key_pair_name>"
+    ```bash
+    $ bash aws-cfn-vpn/config.sh -x 0-2
     ```
 
-    Optional:
+1. Classic: Use domain and enable HTTPS.
+    Add the domain `example.com` to your vpn services, such as the
+    admin web console, the l2tp service, and the Shadowsocks service.
+    HTTPS will be enabled for the admin web console.
 
-    ```ini
-    "Domain=<yourdomain.com>"
-    "SSMDomain=<admin.ss.yourdomain.com>"
-    "SSMAdminEmail=<admin@vpn.yourdomain.com>"
-    "L2TPDomain=<vpn.yourdomain.com>"
+    ```bash
+    $ bash aws-cfn-vpn/config.sh -x 0-2 -d EXAMPLE.COM
     ```
-    HTTPS will be enabled if `SSMDomain` is specified.
 
-    Enable DNS service API with additional settings(only `name.com` for now):
+1. Advanced: Enable DNS service API with additional settings(only `name.com` for now):
 
-    ```ini
-    "DomainNameServer=name.com"
-    "DomainNameServerUsername=<your_username_of_name.com>"
-    "DomainNameServerCredential=<your_api_token_of_name.com>"
+    ```bash
+    $ bash aws-cfn-vpn/config.sh -x 0-2 -d EXAMPLE.COM -N name.com -u DomainNameServerUsername -p DomainNameServerCredential
     ```
 
     With DNS service API enabled, DNS records can be automatically
@@ -321,85 +315,57 @@ $ git clone https://github.com/alexzhangs/aws-cfn-acm
     generated at your
     [name.com API settings](https://www.name.com/account/settings/api).
 
-    Change any other settings as you wish.
-
-1. Create the manager stack.
-
-    Run below command at your local:
+1. Or see the help and figure it out yourself:
 
     ```bash
-    $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssm.conf
+    $ bash aws-cfn-vpn/config.sh -h
     ```
 
-    If HTTPS is enabled but the DNS service API is not, you need to
-    manually create DNS record to validate the new created ACM
-    certificate. Visit AWS ACM service console to obtain the DNS
-    record info. Once the ACM certificate is validated successfully,
-    you can proceed.
+After the command is completed, following config files should be
+created:
 
-    Then wait for the stack creation complete.
+```sh
+$ ls -1 aws-cfn-vpn/vpn-*.conf
+aws-cfn-vpn/vpn-0-sample.conf
+aws-cfn-vpn/vpn-1-sample.conf
+aws-cfn-vpn/vpn-2-sample.conf
+```
 
-    If the stack creation complete successfully, run below command to get the output of the stack. Replace `<stack_name>` with the real stack name.
+### Create the manager stack and the node stacks
 
-    ```bash
-    $ xsh aws/cfn/stack/desc <stack_name>
-    ```
+Following command will create three CloudFormation stacks by using
+the three AWS CLI profiles and the three config files created in the
+earlier steps.
 
-1. Verify the manager stack deployment.
+```bash
+$ bash aws-cfn-vpn/create.sh -x 0-2 -p "profile-0 profile-1 profile-2" aws-cfn-vpn/vpn-{0..2}-sample.conf
+```
 
-    Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
+If HTTPS is enabled but the DNS service API is not, you need to
+manually create DNS record to validate the new created ACM
+certificate. Visit
+[AWS ACM service](https://console.aws.amazon.com/acm)
+console to obtain the DNS record info. Once the ACM certificate is
+validated successfully, you can proceed.
 
-    Or visit `https://<admin.ss.yourdomain.com>/admin`. Note that you
-    must use the HTTPS protocol with using the domain, the HTTP protocol
-    won't work with it.
+The command takes around 30 minutes to complete, and if everything
+goes smooth, the 3 stacks and all services should be ready after
+the command is completed. You can move to the next section.
 
-    Log in with the default username and password if you didn't change it in the sample conf file.
+### Verify the manager stack deployment.
 
-    ```ini
-    "SSMAdminUsername=admin"
-    "SSMAdminPassword=passw0rd"
-    ```
+Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
 
-### Create the Node Stack
+Or visit `https://admin.ss.yourdomain.com/admin`. Note that you
+must use the HTTPS protocol with using the domain, the HTTP protocol
+won't work with it.
 
-1. Activate another AWS profile and create an EC2 key pair.
+Log in with the default username and password:
 
-    Refer to the steps in the last section.
-
-1. Edit `sample-ssn-1.conf`.
-
-    Set below values by the output of the manager stack.
-
-    ```ini
-    "SSMAccountId=<AccountId>"
-    "VpcPeerAccepterRegion=<VpcPeerAccepterRegion>"
-    "VpcPeerAccepterVpcId=<VpcId>"
-    "VpcPeerAccepterSqsQueueUrl=<VpcPeerAccepterSqsQueueUrl>"
-    "VpcPeerAccepterRoleArn=<IamPeerRoleArn>"
-    "SnsTopicArn=<SnsTopicArnForConfig>"
-    ```
-
-    Set below values with your preferred.
-
-    ```ini
-    "SSDomain=<ss.yourdomain.com>"
-    "KeyPairName=<your_aws_ec2_key_pair_name>"
-    ```
-
-    Change any other settings as you wish.
-
-1. Create the node stack.
-
-    Run below command at your local:
-
-    ```bash
-    $ xsh aws/cfn/deploy -C ./aws-cfn-vpn -t stack.json -c sample-ssn-1.conf
-    ```
-
-    Then wait for the stack creation complete.
-
-1. If everything goes fine, repeat the same steps with
-`sample-ssn-2.conf` to deploy the next node stack.
+```ini
+"SSMAdminUsername=admin"
+"SSMAdminPassword=passw0rd"
+```
 
 ## Maintain DNS Records
 
@@ -408,7 +374,7 @@ shadowsocks-manager should have taken care of the DNS records.
 
 If you are not in the case above, proceed with following steps:
 
- 1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
+1. Create a DNS `A record`, such as `admin.ss`.yourdomain.com,
 pointing to the public IP of EC2 Instance of manager stack.
 
     Use this domain to access the shadowsocks-manager.
@@ -426,12 +392,12 @@ the public IP of EC2 Instance of node stack.
 ## Configure shadowsocks-manager
 
 1. Log in the shadowsocks-manager web console back at
-`http://admin.ss.yourdomain.com/admin` after the DNS records get
+`https://admin.ss.yourdomain.com/admin` after the DNS records get
 effective.
 
-1. Go to `Home › Shadowsocks › Shadowsocks Nodes › Add Shadowsocks
-Node`, to check the node list, all node stacks you created should have been
-registered as nodes automatically.
+1. Go to `Home › Shadowsocks › Shadowsocks Nodes`, to check the node
+list, all node stacks you created should have been registered as nodes
+automatically.
 
     Note: The registration relies on the AWS Config, SNS and Lambda services,
 it takes up to around 15 minutes to capture and deliver the config changes.
@@ -485,7 +451,6 @@ level.
 
 ## TODO
 
-* Add the support for AMI Amazon Linux 2.
 
 ## Troubleshooting
 
