@@ -10,6 +10,8 @@ Additionally, it's also deploying
 which is a web-based Shadowsocks management tool for multi-user and traffic statistics,
 support multi-node, creating DNS records, and syncing IPs to name.com.
 
+![stack list](doc/aws-cfn-vpn.png)
+
 ## Services List
 
 * Shadowsocks-libev
