@@ -32,6 +32,7 @@ def lambda_handler(event, context):
         cicn_inst = CICN(json.loads(message))
     except ValueError as e:
         print('skip this event: ' + str(e))
+        return
 
     cicn_inst.process()
 
