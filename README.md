@@ -1,3 +1,10 @@
+[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors)
+
+[![GitHub tag](https://img.shields.io/github/tag/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/) [![GitHub](https://img.shields.io/github/license/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/) [![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+
+[![GitHub issues](https://img.shields.io/github/issues/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+
 # aws-cfn-vpn
 
 AWS CloudFormation Stack for VPN services.
