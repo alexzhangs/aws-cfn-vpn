@@ -440,20 +440,14 @@
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
-                  "bash shadowsocks-manager/install-dependency.sh\n",
-                  "bash shadowsocks-manager/install-extra.sh\n",
-
-                  "bash shadowsocks-manager/install.sh",
+                  "bash shadowsocks-manager/one-click-deploy.sh",
                   " -n '", {"Ref": "SSMDomain"}, "'",
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
                   " -e '", {"Ref": "SSMAdminEmail"}, "'",
                   " -t '", {"Ref": "SSMTimeZone"}, "'",
                   " -r '", {"Ref": "SSPortBegin"}, "'",
-                  " -R '", {"Ref": "SSPortEnd"}, "'\n",
-
-                  "supervisorctl reload\n",
-                  "service nginx reload\n"
+                  " -R '", {"Ref": "SSPortEnd"}, "'\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
