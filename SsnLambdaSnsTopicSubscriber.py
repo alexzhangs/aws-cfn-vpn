@@ -20,6 +20,9 @@ def change_ip(stack):
                 p['ParameterValue'] = 'vpc'
             else:
                 p['ParameterValue'] = ''
+            p['UsePreviousValue'] = False
+        else:
+            p['UsePreviousValue'] = True
         new_param.append(p)
 
     return stack.update(
