@@ -3,16 +3,21 @@
 set -e -o pipefail
 
 #? Description:
-#?   Create AWS CloudFormation stacks from the template and the config files.
+#?   Deploy AWS CloudFormation stacks from the template and the config files.
 #?
 #? Usage:
-#?   create.sh [-x STACKS] [-p PROFILES] [-r REGION] CONFS ...
-#?   create.sh [-h]
+#?   deploy.sh [-r REGION] [-x STACKS ...] [-p PROFILES ...] [-u NAMES ...] -c CONFS ...
+#?   deploy.sh [-h]
 #?
 #? Options:
-#?   [-x STACKS]
+#?   [-r REGION]
 #?
-#?   The STACKS specifies the stacks that will be operated on.
+#?   The REGION specifies the AWS region name.
+#?   Default is using the region in your AWS CLI profile.
+#?
+#?   [-x STACKS ...]
+#?
+#?   The STACKS specifies the stacks index that will be operated on.
 #?   The STACKS option argument is a whitespace separated set of numbers and/or
 #?   number ranges. Number ranges consist of a number, a dash ('-'), and a second
 #?   number and select the stacks from the first number to the second, inclusive.
@@ -27,21 +32,24 @@ set -e -o pipefail
 #?   The default STACKS is '0-1', which selects the only manager stack and 1 node
 #?   stack.
 #?
-#?   [-p PROFILES]
+#?   [-p PROFILES ...]
 #?
 #?   The PROFILES specifies the AWS CLI profile that will be used for creating
 #?   stacks.
 #?   The STACKS option argument is a whitespace separated set of profile names.
 #?   The order of the profile names matters.
 #?
-#?   [-r REGION]
+#?   [-u NAMES ...]
 #?
-#?   The REGION specifies the AWS region name.
-#?   Default is using the region in your AWS CLI profile.
+#?   The NAMES specifies the names of the stacks that will be updated.
+#?   If this option presents, the update process is taken rather than the
+#?   create process.
+#?   The NAMES option argument is a whitespace separated set of stack names.
+#?   The order of the stack names matters.
 #?
-#?   CONFS
+#?   -c CONFS ...
 #?
-#?   The CONFS specifies the config files that will be used for creating stacks.
+#?   The CONFS specifies the config files that will be operated on.
 #?   The CONFS option argument is a whitespace separated set of file names.
 #?   The order of the file names matters.
 #?
@@ -50,7 +58,11 @@ set -e -o pipefail
 #?   This help.
 #?
 #? Example:
-#?   create.sh -x 0-3 -p "profile-0 profile-1 profile-2 profile-3" vpn-{0..3}-sample.conf
+#?   # create new stacks
+#?   deploy.sh -x {0..3} -p profile-{0..3} -c vpn-{0..3}-sample.conf
+#?
+#?   # update existing stacks
+#?   deploy.sh -x {0..3} -p profile-{0..3} -c vpn-{0..3}-sample.conf -u vpn-{0..3}-sample
 #?
 
 PARAM_MAPPINGS=(
@@ -79,7 +91,7 @@ function expension () {
 }
 
 function update-config () {
-    declare file=${1:?} stack=${2:?} region=$3 json=$4
+    declare file=${1:?} stack=${2:?} region=$3 json=$4 keypair
 
     echo "updating config file: $file ..."
 
@@ -99,6 +111,12 @@ function update-config () {
     fi
     echo "updating OPTIONS: KeyPairName ..."
     xsh /util/sed-inplace "/KeyPairName=/ s|<REGION>|$region|" "$file"
+
+    keypair=$(get-keypairname "$file")
+    if ! xsh aws/ec2/key/exist -r "$region" "$keypair"; then
+        echo "creating EC2 key pair: $keypair ..."
+        xsh aws/ec2/key/create -r "$region" -f ~/.ssh/"$keypair" "$keypair"
+    fi
 }
 
 function get-stack-output-param () {
@@ -111,35 +129,60 @@ function get-keypairname () {
     awk -F= '/KeyPairName=/ {print $2}' "$file" | tr -d \'\"
 }
 
-function create-stack () {
-    declare conf=${1:?} profile=$2 region=$3 keypair
-
+function activate () {
+    declare profile=$1
     if [[ -n $profile ]]; then
         xsh aws/cfg/activate "$profile"
     fi
+}
 
+function create-stack () {
+    declare conf=${1:?} region=$2
     echo "creating stack with config: $conf ..."
-    keypair=$(get-keypairname "$conf")
-    if ! xsh aws/ec2/key/exist -r "$region" "$keypair"; then
-        xsh aws/ec2/key/create -r "$region" -f ~/.ssh/"$keypair" "$keypair"
-    fi
     xsh aws/cfn/deploy -r "$region" -C "$BASE_DIR" -t stack.json -c "$conf"
 }
 
-function main () {
-    declare region stacks=0-1 profiles confs\
-            OPTAND OPTARG opt
+function update-stack () {
+    declare conf=${1:?} name=${2:?} region=$3
+    echo "updating stack $name with config: $conf ..."
+    echo yes | xsh aws/cfn/deploy -r "$region" -C "$BASE_DIR" -t stack.json -c "$conf" -s "$name" -D
+}
 
-    while getopts x:p:r:h opt; do
+function deploy-stack () {
+    declare conf=${1:?} name=$2 region=$3
+    if [[ -z $name ]]; then
+        create-stack "$conf" "$region"
+    else
+        update-stack "$conf" "$name" "$region"
+    fi
+}
+
+function main () {
+    declare region stacks=0-1 profiles confs names\
+            OPTIND OPTARG opt
+
+    xsh import /util/getopts/extra
+
+    while getopts r:x:p:c:u:h opt; do
         case $opt in
-            x)
-                stacks=$OPTARG
-                ;;
-            p)
-                profiles=( $OPTARG )
-                ;;
             r)
                 region=$OPTARG
+                ;;
+            x)
+                x-util-getopts-extra "$@"
+                stacks=( "${OPTARG[@]}" )
+                ;;
+            p)
+                x-util-getopts-extra "$@"
+                profiles=( "${OPTARG[@]}" )
+                ;;
+            c)
+                x-util-getopts-extra "$@"
+                confs=( "${OPTARG[@]}" )
+                ;;
+            u)
+                x-util-getopts-extra "$@"
+                names=( "${OPTARG[@]}" )
                 ;;
             *)
                 usage
@@ -147,9 +190,6 @@ function main () {
                 ;;
         esac
     done
-    shift $((OPTIND - 1))
-    confs=( "$@" )
-
     if [[ $# -eq 0 ]]; then
         usage
         exit 255
@@ -167,13 +207,14 @@ function main () {
         exit 255
     fi
 
-    # loop the list to create stacks
+    # loop the list to deploy stacks
     declare stack tmpfile=/tmp/aws-cfn-vpn-$RANDOM mgr_stack_name json
     for stack in ${stacks[@]}; do
+        activate "${profiles[stack]}"
         update-config "${confs[stack]}" "$stack" "$region" "$json"
 
         if [[ $stack -eq 0 ]]; then
-            create-stack "${confs[stack]}" "${profiles[stack]}" "$region" | tee "$tmpfile"
+            deploy-stack "${confs[stack]}" "${names[stack]}" "$region" | tee "$tmpfile"
             mgr_stack_name=$(awk -F/ '/"StackId":/ {print $2}' "$tmpfile")
 
             if [[ -n $mgr_stack_name ]]; then
@@ -183,7 +224,7 @@ function main () {
                 exit 255
             fi
         else
-            create-stack "${confs[stack]}" "${profiles[stack]}" "$region"
+            deploy-stack "${confs[stack]}" "${names[stack]}" "$region"
         fi
     done
 }

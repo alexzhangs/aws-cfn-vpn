@@ -21,7 +21,7 @@ set -e -o pipefail
 #? Options:
 #?   [-x STACKS]
 #?
-#?   The STACKS specifies the stacks that will be operated on.
+#?   The STACKS specifies the stacks index that will be operated on.
 #?   The STACKS option argument is a whitespace separated set of numbers and/or
 #?   number ranges. Number ranges consist of a number, a dash ('-'), and a second
 #?   number and select the stacks from the first number to the second, inclusive.

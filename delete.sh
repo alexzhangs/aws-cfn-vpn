@@ -6,13 +6,18 @@ set -e -o pipefail
 #?   Delete AWS CloudFormation stacks.
 #?
 #? Usage:
-#?   delete.sh [-x STACKS] [-p PROFILES] [-r REGION] NAMES ...
+#?   delete.sh [-r REGION] [-x STACKS ...] [-p PROFILES ...] -d NAMES ...
 #?   delete.sh [-h]
 #?
 #? Options:
-#?   [-x STACKS]
+#?   [-r REGION]
 #?
-#?   The STACKS specifies the stacks that will be operated on.
+#?   The REGION specifies the AWS region name.
+#?   Default is using the region in your AWS CLI profile.
+#?
+#?   [-x STACKS ...]
+#?
+#?   The STACKS specifies the stacks index that will be operated on.
 #?   The STACKS option argument is a whitespace separated set of numbers and/or
 #?   number ranges. Number ranges consist of a number, a dash ('-'), and a second
 #?   number and select the stacks from the first number to the second, inclusive.
@@ -28,19 +33,14 @@ set -e -o pipefail
 #?   stack.
 #?   The node stacks are always being deleted before the manager stack.
 #?
-#?   [-p PROFILES]
+#?   [-p PROFILES ...]
 #?
 #?   The PROFILES specifies the AWS CLI profile that will be used for creating
 #?   stacks.
 #?   The STACKS option argument is a whitespace separated set of profile names.
 #?   The order of the profile names matters.
 #?
-#?   [-r REGION]
-#?
-#?   The REGION specifies the AWS region name.
-#?   Default is using the region in your AWS CLI profile.
-#?
-#?   NAMES
+#?   -d NAMES ...
 #?
 #?   The NAMES specifies the names of the stacks that will be deleted.
 #?   The NAMES option argument is a whitespace separated set of stack names.
@@ -51,7 +51,7 @@ set -e -o pipefail
 #?   This help.
 #?
 #? Example:
-#?   delete.sh -x 0-3 -p "profile-0 profile-1 profile-2 profile-3" vpn-{0..3}-sample.conf
+#?   delete.sh -x {0..3} -p profile-{0..3} -d vpn-{0..3}-sample
 #?
 
 function usage () {
@@ -83,18 +83,26 @@ function delete-stack () {
 
 function main () {
     declare region stacks=0-1 profiles names\
-            OPTAND OPTARG opt
+            OPTIND OPTARG opt
 
-    while getopts x:p:r:h opt; do
+    xsh import /util/getopts/extra
+
+    while getopts r:x:p:d:h opt; do
         case $opt in
-            x)
-                stacks=$OPTARG
-                ;;
-            p)
-                profiles=( $OPTARG )
-                ;;
             r)
                 region=$OPTARG
+                ;;
+            x)
+                x-util-getopts-extra "$@"
+                stacks=( "${OPTARG[@]}" )
+                ;;
+            p)
+                x-util-getopts-extra "$@"
+                profiles=( "${OPTARG[@]}" )
+                ;;
+            d)
+                x-util-getopts-extra "$@"
+                names=( "${OPTARG[@]}" )
                 ;;
             *)
                 usage
@@ -102,8 +110,6 @@ function main () {
                 ;;
         esac
     done
-    shift $((OPTIND - 1))
-    names=( "$@" )
 
     if [[ $# -eq 0 ]]; then
         usage

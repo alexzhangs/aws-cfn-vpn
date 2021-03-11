@@ -346,7 +346,7 @@ the three AWS CLI profiles and the three config files created in the
 earlier steps.
 
 ```bash
-$ bash aws-cfn-vpn/create.sh -x 0-2 -p "profile-0 profile-1 profile-2" aws-cfn-vpn/vpn-{0..2}-sample.conf
+$ bash aws-cfn-vpn/deploy.sh -x {0..2} -p profile-{0..2}  -c aws-cfn-vpn/vpn-{0..2}-sample.conf
 ```
 
 If HTTPS is enabled, but the DNS service API is not, you need to
