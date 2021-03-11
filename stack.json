@@ -58,7 +58,7 @@
             {"Ref": "SnsTopicArn"}
           ]}
         },
-        "TimeoutInMinutes": "2"
+        "TimeoutInMinutes": "3"
       }
     },
     "LexBotStack": {
@@ -70,7 +70,7 @@
           "Region": {"Ref": "LexBotRegion"},
           "LambdaArn": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
         },
-        "TimeoutInMinutes": "2"
+        "TimeoutInMinutes": "3"
       }
     },
     "AcmStack": {
