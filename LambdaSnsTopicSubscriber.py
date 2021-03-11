@@ -191,13 +191,13 @@ class Handler(object):
 
         self.cicn = cicn
 
-    def create(self, cicn):
+    def create(self):
         pass
 
-    def update(self, cicn):
+    def update(self):
         pass
 
-    def delete(self, cicn):
+    def delete(self):
         pass
 
 
