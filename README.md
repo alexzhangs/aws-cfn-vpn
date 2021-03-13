@@ -73,10 +73,7 @@ aws-cfn-vpn (github)
 ├── aws-ec2-xl2tpd (github)
 │   ├── openswan (yum)
 │   └── xl2tpd (yum)
-├── chap-manager (github)
-└── aws-ec2-supervisor (github)
-     ├── supervisor (pip)
-     └── supervisord (github) - The initd script
+└── chap-manager (github)
 ```
 
 ## Insight
@@ -485,8 +482,6 @@ gates.
    1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses)
    1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd)
    1. [chap-manager](https://github.com/alexzhangs/chap-manager)
-   1. [aws-ec2-supervisor](https://github.com/alexzhangs/aws-ec2-supervisor)
-   1. [supervisord](https://github.com/alexzhangs/supervisord)
 
 1. Failed to delete the manager stack.
 
