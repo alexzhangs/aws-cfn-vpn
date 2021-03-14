@@ -1245,100 +1245,125 @@
   },
   "Mappings": {
     "RegionMap": {
-      "ap-east-1": {
-        "endpoint": "rds.ap-east-1.amazonaws.com",
-        "location": "Asia Pacific (Hong Kong)"
-      },
-      "ap-northeast-1": {
-        "AMI": "ami-0992fc94ca0f1415a",
-        "endpoint": "rds.ap-northeast-1.amazonaws.com",
-        "location": "Asia Pacific (Tokyo)"
-      },
-      "ap-northeast-2": {
-        "AMI": "ami-983ce8f6",
-        "endpoint": "rds.ap-northeast-2.amazonaws.com",
-        "location": "Asia Pacific (Seoul)"
-      },
-      "ap-northeast-3": {
-        "endpoint": "rds.ap-northeast-3.amazonaws.com",
-        "location": "Asia Pacific (Osaka-Local)"
-      },
-      "ap-south-1": {
-        "AMI": "ami-005956c5f0f757d37",
-        "endpoint": "rds.ap-south-1.amazonaws.com",
-        "location": "Asia Pacific (Mumbai)"
-      },
-      "ap-southeast-1": {
-        "AMI": "ami-1ddc0b7e",
-        "endpoint": "rds.ap-southeast-1.amazonaws.com",
-        "location": "Asia Pacific (Singapore)"
-      },
-      "ap-southeast-2": {
-        "endpoint": "rds.ap-southeast-2.amazonaws.com",
-        "location": "Asia Pacific (Sydney)"
-      },
-      "ca-central-1": {
-        "endpoint": "rds.ca-central-1.amazonaws.com",
-        "location": "Canada (Central)"
-      },
-      "cn-north-1": {
-        "endpoint": "rds.cn-north-1.amazonaws.com.cn",
-        "location": "China (Beijing)"
-      },
-      "cn-northwest-1": {
-        "endpoint": "rds.cn-northwest-1.amazonaws.com.cn",
-        "location": "China (Ningxia)"
-      },
-      "eu-central-1": {
-        "endpoint": "rds.eu-central-1.amazonaws.com",
-        "location": "EU (Frankfurt)"
+      "af-south-1": {
+        "AMI": "ami-0d50aa12878bdd456", 
+        "location": "Africa (Cape Town)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T18:58:58.000Z"
       },
       "eu-north-1": {
-        "AMI": "ami-05a66c68",
-        "endpoint": "rds.eu-north-1.amazonaws.com",
-        "location": "EU (Stockholm)"
+        "AMI": "ami-068509dbe82d01c91", 
+        "location": "Europe (Stockholm)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:16.000Z"
       },
-      "eu-west-1": {
-        "endpoint": "rds.eu-west-1.amazonaws.com",
-        "location": "EU (Ireland)"
-      },
-      "eu-west-2": {
-        "AMI": "ami-098828924dc89ea4a",
-        "endpoint": "rds.eu-west-2.amazonaws.com",
-        "location": "EU (London)"
+      "ap-south-1": {
+        "AMI": "ami-081bb417559035fe8", 
+        "location": "Asia Pacific (Mumbai)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:17.000Z"
       },
       "eu-west-3": {
-        "endpoint": "rds.eu-west-3.amazonaws.com",
-        "location": "EU (Paris)"
+        "AMI": "ami-0d9a499b43edd7ae0", 
+        "location": "Europe (Paris)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
+      },
+      "eu-west-2": {
+        "AMI": "ami-0b6b51e397faf2316", 
+        "location": "Europe (London)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
+      },
+      "eu-south-1": {
+        "AMI": "ami-0aff3a8a215c46a88", 
+        "location": "Europe (Milan)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:00:20.000Z"
+      },
+      "eu-west-1": {
+        "AMI": "ami-079d9017cb651564d", 
+        "location": "Europe (Ireland)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
+      },
+      "ap-northeast-3": {
+        "AMI": "ami-01d3ab722655c7b7c", 
+        "location": "Asia Pacific (Osaka)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:14.000Z"
+      },
+      "ap-northeast-2": {
+        "AMI": "ami-0e17ad9abf7e5c818", 
+        "location": "Asia Pacific (Seoul)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-0f27d081df46f326c", 
+        "location": "Asia Pacific (Tokyo)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
       },
       "sa-east-1": {
-        "endpoint": "rds.sa-east-1.amazonaws.com",
-        "location": "South America (São Paulo)"
+        "AMI": "ami-01eb71e14cef400e2", 
+        "location": "South America (Sao Paulo)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:16.000Z"
+      },
+      "ca-central-1": {
+        "AMI": "ami-0b7de35cf47b997ae", 
+        "location": "Canada (Central)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:46.000Z"
+      },
+      "ap-east-1": {
+        "AMI": "ami-05892ab682f8ff858", 
+        "location": "Asia Pacific (Hong Kong)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T18:59:16.000Z"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-0cd4900b43e25799c", 
+        "location": "Asia Pacific (Singapore)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:16.000Z"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-0b72132eb3104947d", 
+        "location": "Asia Pacific (Sydney)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
+      },
+      "eu-central-1": {
+        "AMI": "ami-0de9f803fcac87f46", 
+        "location": "Europe (Frankfurt)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
       },
       "us-east-1": {
-        "endpoint": "rds.us-east-1.amazonaws.com",
-        "location": "US East (N. Virginia)"
+        "AMI": "ami-038f1ca1bd58a5790", 
+        "location": "US East (N. Virginia)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:15.000Z"
       },
       "us-east-2": {
-        "endpoint": "rds.us-east-2.amazonaws.com",
-        "location": "US East (Ohio)"
-      },
-      "us-gov-east-1": {
-        "endpoint": "rds.us-gov-east-1.amazonaws.com",
-        "location": "AWS GovCloud (US-East)"
-      },
-      "us-gov-west-1": {
-        "endpoint": "rds.us-gov-west-1.amazonaws.com",
-        "location": "AWS GovCloud (US)"
+        "AMI": "ami-07a0844029df33d7d", 
+        "location": "US East (Ohio)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:13.000Z"
       },
       "us-west-1": {
-        "endpoint": "rds.us-west-1.amazonaws.com",
-        "location": "US West (N. California)"
+        "AMI": "ami-0c7945b4c95c0481c", 
+        "location": "US West (N. California)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:13.000Z"
       },
       "us-west-2": {
-        "AMI": "ami-08d489468314a58df",
-        "endpoint": "rds.us-west-2.amazonaws.com",
-        "location": "US West (Oregon)"
+        "AMI": "ami-00f9f4069d04c0c6e", 
+        "location": "US West (Oregon)", 
+        "name": "amzn2-ami-hvm-2.0.20210303.0-x86_64-gp2", 
+        "created": "2021-03-04T19:36:13.000Z"
       }
     }
   },
