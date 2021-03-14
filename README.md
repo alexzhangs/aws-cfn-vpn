@@ -262,10 +262,10 @@ them ready.
     bash xsh/install.sh
     ```
 
-1. [xsh-lib/aws](https://github.com/xsh-lib/aws): xsh-lib/aws is a
-library or xsh.
+1. [xsh-lib/core](https://github.com/xsh-lib/core) and [xsh-lib/aws](https://github.com/xsh-lib/aws)
 
     ```bash
+    xsh load xsh-lib/core
     xsh load xsh-lib/aws
     ```
 
