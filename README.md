@@ -510,6 +510,8 @@ level.
 
 ## TODO
 
+* Add an Amazon Linux 2 AMI for all regions.
+* Add a default Shadowsocks user like the default user for L2TPD.
 
 ## Troubleshooting
 
