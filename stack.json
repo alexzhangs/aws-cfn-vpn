@@ -870,13 +870,13 @@
       "Fn::Equals": [{"Ref": "EnableLexBot"}, "1"]
     },
     "EnableSSL": {
-      "Fn::And": [ 
+      "Fn::And": [
         {"Fn::Equals": [{"Ref": "EnableSSM"}, "1"]},
         {"Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]}
       ]
     },
     "EnableDnsApi": {
-      "Fn::And": [ 
+      "Fn::And": [
         {"Fn::Not": [{"Fn::Equals":["", {"Ref": "DomainNameServer"}]}]},
         {"Fn::Not": [{"Fn::Equals":["", {"Ref": "DomainNameServerUsername"}]}]},
         {"Fn::Not": [{"Fn::Equals":["", {"Ref": "DomainNameServerCredential"}]}]}
