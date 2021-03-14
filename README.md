@@ -156,9 +156,61 @@ used.
 
 ### sample-*.conf
 
-`sample-*.conf` are config files used by `aws-cfn-deploy` to automate AWS CloudFormation template deployment.
+`sample-*.conf` are config files used by `xsh-lib/aws/cfn/deploy` to automate AWS CloudFormation template deployment.
 
-`aws-cfn-deploy` can be installed from repo [xsh-lib/aws](https://github.com/xsh-lib/aws).
+`xsh-lib/aws/cfn/deploy` can be installed from repo
+[xsh-lib/aws](https://github.com/xsh-lib/aws).
+
+### *.sh
+
+These scripts are the high-level wrapper of the `xsh-lib/aws`, with
+them you can deploy clustered stacks in multiple accounts with
+one single command.
+
+NOTE: If you are deploying one single stack but the clustered stacks,
+don't use these scripts. Simply pick up the config file
+`sample-ssm-and-ssn-0.conf` and use `xsh-lib/aws/cfn/deploy` to deploy it.
+
+#### config.sh
+
+The `config.sh` is used to generate a set of config files (like
+sample-*.conf) which can be used by `deploy.sh` directly.
+
+#### deploy.sh
+
+The `deploy.sh` is used to deploy the clustered stacks from a set of
+config files. Updating existing stacks is supported by additionally
+specifying a set of stack names.
+
+The EC2 key pair names in the config files are dynamically resolved during
+the deployment. The deploying region is used as a part of the name to avoid the
+potential naming collision. Therefore the key pairs are automatically
+created in AWS and saved to local (~/.ssh) if they don't exist yet.
+
+#### delete.sh
+
+The `delete.sh` is used to delete the clustered stacks from a set of
+stack names. Be noted: the key pairs won't be deleted along with the
+stacks.
+
+
+For the detailed usage of theese scripts, see `bash <script>.sh -h`.
+
+With them, you can build a set of custom commands to quickly
+deploy your stacks.
+
+```bash
+declare name=vpn env=prod region=eu-west-2
+bash delete.sh -r "$region" -x 0-4 -p $name-{0..4} -d $name-{0..4}-$env
+bash config.sh -x 0-4 -n "$name" -e "$env" -S -d EXAMPLE.COM -N name.com -u YOUR_DNS_API_USER -p YOUR_DNS_API_TOKEN
+bash deploy.sh -r "$region" -x 0-4 -p $name-{0..4} -c $name-{0..4}-$env.conf
+bash deploy.sh -r "$region" -x 0-4 -p $name-{0..4} -c $name-{0..4}-$env.conf -u $name-{0..4}-$env
+```
+
+With the command set above, you will get 1 manager stack with the
+L2TPD enabled, and 4 Shadowsocks node stacks with traffic balanced by
+DNS. It takes around 1 hour. You will be able to log in to your manager
+stack with the domain name without any additional setting. 
 
 ## Classic Usage
 
@@ -343,7 +395,7 @@ the three AWS CLI profiles and the three config files created in the
 earlier steps.
 
 ```bash
-$ bash aws-cfn-vpn/deploy.sh -x {0..2} -p profile-{0..2}  -c aws-cfn-vpn/vpn-{0..2}-sample.conf
+$ bash aws-cfn-vpn/deploy.sh -x 0-2 -p profile-{0..2}  -c aws-cfn-vpn/vpn-{0..2}-sample.conf
 ```
 
 If HTTPS is enabled, but the DNS service API is not, you need to
@@ -380,7 +432,7 @@ shadowsocks-manager should have taken care of the DNS records.
 If you are not in the case above, proceed with the following steps:
 
 1. Create a DNS `CNAME record`, such as `admin.ss`.yourdomain.com,
-pointing to the public DNS name of the ELB of manager stack.
+pointing to the public DNS name of the ELB of the manager stack.
 
     Use this domain to access the shadowsocks-manager.
 
@@ -489,7 +541,7 @@ gates.
 
    Solution:
 
-   1. Delete all the node stacks before to delete the manager stack.
+   1. Delete all the node stacks before deleting the manager stack.
 
    2. Manually delete all existing peer connections belong to that stack first. This can be done with AWS web console, or the CLI:
 
@@ -507,12 +559,10 @@ gates.
    "Mappings": {
      "RegionMap": {
        "ap-east-1": {
-         "endpoint": "rds.ap-east-1.amazonaws.com",
          "location": "Asia Pacific (Hong Kong)"
        },
        "ap-northeast-1": {
-         "AMI": "ami-29160d47",
-         "endpoint": "rds.ap-northeast-1.amazonaws.com",
+         "AMI": "ami-0992fc94ca0f1415a",
          "location": "Asia Pacific (Tokyo)"
        },
        ...
@@ -520,11 +570,11 @@ gates.
    }
    ```
 
-   For the regions without an AMI, you need to figure it out by yourself. Usually, an AWS AMI with which the template works will look like:
+   For the regions without an AMI, you need to figure it out by
+   yourself. The tested AMIs:
 
-   ```
-   Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
-   Amazon Linux 2 AMI (HVM), SSD Volume Type
-   ```
+   * Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
+   * Amazon Linux 2 AMI (HVM), SSD Volume Type (THIS AMI IS
+     RECOMMENDED for aws-cfn-vpn)
 
    Feel free to open pull requests for the verified compatible AMIs.
