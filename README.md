@@ -171,6 +171,12 @@ NOTE: If you are deploying one single stack but the clustered stacks,
 don't use these scripts. Simply pick up the config file
 `sample-ssm-and-ssn-0.conf` and use `xsh-lib/aws/cfn/deploy` to deploy it.
 
+#### aim.sh
+
+The`aim.sh` is used to get the latest AMIs for all enabled regions.
+With the `-t TEMPLATE` option, it will update the TEMPLATE file with
+the new mapping on the key `Mappings`.
+
 #### config.sh
 
 The `config.sh` is used to generate a set of config files (like
@@ -201,6 +207,7 @@ deploy your stacks.
 
 ```bash
 declare name=vpn env=prod region=eu-west-2
+bash aim.sh -t stack.json
 bash delete.sh -r "$region" -x 0-4 -p $name-{0..4} -d $name-{0..4}-$env
 bash config.sh -x 0-4 -n "$name" -e "$env" -S -d EXAMPLE.COM -N name.com -u YOUR_DNS_API_USER -p YOUR_DNS_API_TOKEN
 bash deploy.sh -r "$region" -x 0-4 -p $name-{0..4} -c $name-{0..4}-$env.conf
@@ -510,7 +517,6 @@ level.
 
 ## TODO
 
-* Add an Amazon Linux 2 AMI for all regions.
 * Add a default Shadowsocks user like the default user for L2TPD.
 
 ## Troubleshooting
