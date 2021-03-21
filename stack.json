@@ -159,7 +159,11 @@
         "IpProtocol": "udp",
         "FromPort": {"Ref": "SSManagerPort"},
         "ToPort": {"Ref": "SSManagerPort"},
-        "CidrIp": "0.0.0.0/0",
+        "CidrIp": {"Fn::If":[
+          "EnableVpcPeerRequester",
+          {"Ref": "VpcPeerAccepterCidrBlock"},
+          {"Ref": "VpcCidrBlock"},
+        ]},
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
