@@ -22,6 +22,7 @@ def change_ip(stack):
                 p['ParameterValue'] = ''
             p['UsePreviousValue'] = False
         else:
+            p.pop('ParameterValue')
             p['UsePreviousValue'] = True
         new_param.append(p)
 
