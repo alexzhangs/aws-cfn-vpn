@@ -16,10 +16,7 @@ def change_ip(stack):
     new_param = []
     for p in stack.parameters:
         if p['ParameterKey'] == 'EipDomain':
-            if p['ParameterValue'] == '':
-                p['ParameterValue'] = 'vpc'
-            else:
-                p['ParameterValue'] = ''
+            p['ParameterValue'] = 'vpc' if p['ParameterValue'] == '' else ''
             p['UsePreviousValue'] = False
         else:
             p.pop('ParameterValue')
@@ -47,5 +44,3 @@ def lambda_handler(event, context):
     message = message.lower().translate({ord(i):None for i in ['_', '-', ' ', '\t']})
     if message == 'changeip':
         return change_ip(stack)
-    else:
-        pass

@@ -103,7 +103,7 @@ class Backend(object):
         if resp:
             resp = self.call('post', url, timeout=5,
                 data=dict(username=self.user, password=self.password, next='/'))
-            if resp: self.authenticated = True
+        if resp: self.authenticated = True
         return resp
 
 class BaseAPI(object):
@@ -118,10 +118,13 @@ class BaseAPI(object):
 
     @classmethod
     def call(cls, *args, **kwargs):
-        if cls.auth_path and not cls.backend.authenticated:
-            if not cls.backend.authenticate(cls.get_url(auth=True)):
-                print('failed to authenticate')
-                return
+        if (
+            cls.auth_path
+            and not cls.backend.authenticated
+            and not cls.backend.authenticate(cls.get_url(auth=True))
+        ):
+            print('failed to authenticate')
+            return
         resp = cls.backend.call(*args, **kwargs)
         if resp is not None:
             return resp.json()
@@ -132,7 +135,7 @@ class BaseModel(object):
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items(): setattr(self, k, v)
-        if not 'id' in self.__dict__: setattr(self, 'id', None)
+        if 'id' not in self.__dict__: setattr(self, 'id', None)
 
     @classmethod
     def list(cls, **kwargs):
