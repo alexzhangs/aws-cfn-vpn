@@ -264,16 +264,16 @@ them ready.
 
 1. [xsh](https://github.com/alexzhangs/xsh): xsh is a bash library framework.
 
-    ```sh
-    git clone https://github.com/alexzhangs/xsh
-    bash xsh/install.sh
+    ```bash
+    $ git clone https://github.com/alexzhangs/xsh
+    $ bash xsh/install.sh
     ```
 
 1. [xsh-lib/core](https://github.com/xsh-lib/core) and [xsh-lib/aws](https://github.com/xsh-lib/aws)
 
     ```bash
-    xsh load xsh-lib/core
-    xsh load xsh-lib/aws
+    $ xsh load xsh-lib/core
+    $ xsh load xsh-lib/aws
     ```
 
 Note: If you are proceeding without the tools, then you will have to manually

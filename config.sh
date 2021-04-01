@@ -3,7 +3,7 @@
 set -e -o pipefail
 
 #? Description:
-#?   Create the config files from templates, and update them by the command
+#?   Create the config file(s) from templates, and update them by the command
 #?   line options.
 #?
 #? Usage:
@@ -31,8 +31,11 @@ set -e -o pipefail
 #?
 #?   The number 0 is specially held for the manager stack, and the rest numbers
 #?   started from 1 is for the node stacks.
-#?   The default STACKS is '0-1', which selects the only manager stack and 1 node
-#?   stack.
+#?
+#?   The number 00 is specially held for a single stack that puts the manager
+#?   and the node together.
+#?
+#?   The default STACKS is 00.
 #?
 #?   [-n NAME]
 #?
@@ -71,8 +74,12 @@ set -e -o pipefail
 #?   This help.
 #?
 #? Example:
-#?   config.sh -x 0-3
-#?   config.sh -x 0-3 -d example.com -n name.com -u myuser -p mytoken
+#?   # creating 1 manager config file and 3 node config files:
+#?   $ config.sh -x 0-3
+#?
+#?   # creating 1 manager config file and 3 node config files using domain
+#?   #  plus the Nameserver API enabled:
+#?   $ config.sh -x 0-3 -d example.com -n name.com -u myuser -p mytoken
 #?
 
 function usage () {
@@ -104,7 +111,7 @@ function create-config () {
 
     # update for OPTIONS: VpcCidrBlock SubnetCidrBlocks
     echo "updating OPTIONS: CIDR blocks ..."
-    xsh /util/sed-inplace "/CidrBlock/ s|<N>|$stack|g" "$file"
+    xsh /util/sed-inplace "/CidrBlock/ s|<N>|$((stack))|g" "$file"
 }
 
 function update-config () {
@@ -159,7 +166,7 @@ function expension () {
 }
 
 function main () {
-    declare region stacks=0-1 name=vpn env=sample suffix=1 \
+    declare region stacks=00 name=vpn env=sample suffix=1 \
             domain dns dns_username dns_credential \
             OPTAND OPTARG opt
 
@@ -200,15 +207,17 @@ function main () {
     done
 
     # build stack list
-    if [[ -n $stacks ]]; then
+    if [[ -z $stacks ]]; then
+        usage
+        exit 255
+    elif [[ $stacks == 00 ]]; then
+        stacks=( $stacks )
+    else
         stacks=(
             $(for item in $stacks; do
                   seq -s '\n' $(expension "$item");
               done | sort -n | uniq)
         )
-    else
-        usage
-        exit 255
     fi
 
     # loop the list to generate config files

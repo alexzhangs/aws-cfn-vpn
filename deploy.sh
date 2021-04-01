@@ -3,10 +3,10 @@
 set -e -o pipefail
 
 #? Description:
-#?   Deploy AWS CloudFormation stacks from the template and the config files.
+#?   Deploy AWS CloudFormation stack(s) from the template and the config files.
 #?
 #? Usage:
-#?   deploy.sh [-r REGION] [-x STACKS ...] [-p PROFILES ...] [-u NAMES ...] -c CONFS ...
+#?   deploy.sh [-r REGION] [-x STACKS ...] [-p PROFILES ...] [-u NAMES ...] -c CONFS [...]
 #?   deploy.sh [-h]
 #?
 #? Options:
@@ -29,8 +29,11 @@ set -e -o pipefail
 #?
 #?   The number 0 is specially held for the manager stack, and the rest numbers
 #?   started from 1 is for the node stacks.
-#?   The default STACKS is '0-1', which selects the only manager stack and 1 node
-#?   stack.
+#?
+#?   The number 00 is specially held for a single stack that puts the manager
+#?   and the node together.
+#?
+#?   The default STACKS is 00.
 #?
 #?   [-p PROFILES ...]
 #?
@@ -47,7 +50,7 @@ set -e -o pipefail
 #?   The NAMES option argument is a whitespace separated set of stack names.
 #?   The order of the stack names matters.
 #?
-#?   -c CONFS ...
+#?   -c CONFS [...]
 #?
 #?   The CONFS specifies the config files that will be operated on.
 #?   The CONFS option argument is a whitespace separated set of file names.
@@ -58,11 +61,11 @@ set -e -o pipefail
 #?   This help.
 #?
 #? Example:
-#?   # create new stacks
-#?   deploy.sh -x {0..3} -p profile-{0..3} -c vpn-{0..3}-sample.conf
+#?   # creating 1 manager stack and 3 node stacks:
+#?   $ deploy.sh -x {0..3} -p profile-{0..3} -c vpn-{0..3}-sample.conf
 #?
-#?   # update existing stacks
-#?   deploy.sh -x {0..3} -p profile-{0..3} -c vpn-{0..3}-sample.conf -u vpn-{0..3}-sample
+#?   # update existing stacks:
+#?   $ deploy.sh -x {0..3} -p profile-{0..3} -c vpn-{0..3}-sample.conf -u vpn-{0..3}-sample
 #?
 
 PARAM_MAPPINGS=(
@@ -158,7 +161,7 @@ function deploy-stack () {
 }
 
 function main () {
-    declare region stacks=0-1 profiles confs names\
+    declare region stacks=00 profiles confs names\
             OPTIND OPTARG opt
 
     xsh import /util/getopts/extra
@@ -190,31 +193,31 @@ function main () {
                 ;;
         esac
     done
-    if [[ $# -eq 0 ]]; then
+    if [[ -z $confs || -z $stacks ]]; then
         usage
         exit 255
     fi
 
     # build stack list
-    if [[ -n $stacks ]]; then
+    if [[ $stacks == 00 ]]; then
+        stacks=( $stacks )
+    else
         stacks=(
             $(for item in $stacks; do
                   seq -s '\n' $(expension "$item");
               done | sort -n | uniq)
         )
-    else
-        usage
-        exit 255
     fi
 
     # loop the list to deploy stacks
-    declare stack tmpfile=/tmp/aws-cfn-vpn-$RANDOM mgr_stack_name json
+    declare stack index tmpfile=/tmp/aws-cfn-vpn-$RANDOM mgr_stack_name json
     for stack in ${stacks[@]}; do
-        activate "${profiles[stack]}"
-        update-config "${confs[stack]}" "$stack" "$region" "$json"
+        index=$((stacks))
+        activate "${profiles[index]}"
+        update-config "${confs[index]}" "$stack" "$region" "$json"
 
         if [[ $stack -eq 0 ]]; then
-            deploy-stack "${confs[stack]}" "${names[stack]}" "$region" | tee "$tmpfile"
+            deploy-stack "${confs[index]}" "${names[index]}" "$region" | tee "$tmpfile"
             mgr_stack_name=$(awk -F/ '/"StackId":/ {print $2}' "$tmpfile")
 
             if [[ -n $mgr_stack_name ]]; then
@@ -224,7 +227,7 @@ function main () {
                 exit 255
             fi
         else
-            deploy-stack "${confs[stack]}" "${names[stack]}" "$region"
+            deploy-stack "${confs[index]}" "${names[index]}" "$region"
         fi
     done
 }

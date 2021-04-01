@@ -3,10 +3,10 @@
 set -e -o pipefail
 
 #? Description:
-#?   Delete AWS CloudFormation stacks.
+#?   Delete AWS CloudFormation stack(s).
 #?
 #? Usage:
-#?   delete.sh [-r REGION] [-x STACKS ...] [-p PROFILES ...] -d NAMES ...
+#?   delete.sh [-r REGION] -x STACKS [...] [-p PROFILES ...] -d NAMES [...]
 #?   delete.sh [-h]
 #?
 #? Options:
@@ -15,7 +15,7 @@ set -e -o pipefail
 #?   The REGION specifies the AWS region name.
 #?   Default is using the region in your AWS CLI profile.
 #?
-#?   [-x STACKS ...]
+#?   -x STACKS [...]
 #?
 #?   The STACKS specifies the stacks index that will be operated on.
 #?   The STACKS option argument is a whitespace separated set of numbers and/or
@@ -29,8 +29,7 @@ set -e -o pipefail
 #?
 #?   The number 0 is specially held for the manager stack, and the rest numbers
 #?   started from 1 is for the node stacks.
-#?   The default STACKS is '0-1', which selects the only manager stack and 1 node
-#?   stack.
+#?
 #?   The node stacks are always being deleted before the manager stack.
 #?
 #?   [-p PROFILES ...]
@@ -40,7 +39,7 @@ set -e -o pipefail
 #?   The STACKS option argument is a whitespace separated set of profile names.
 #?   The order of the profile names matters.
 #?
-#?   -d NAMES ...
+#?   -d NAMES [...]
 #?
 #?   The NAMES specifies the names of the stacks that will be deleted.
 #?   The NAMES option argument is a whitespace separated set of stack names.
@@ -82,7 +81,7 @@ function delete-stack () {
 }
 
 function main () {
-    declare region stacks=0-1 profiles names\
+    declare region stacks profiles names\
             OPTIND OPTARG opt
 
     xsh import /util/getopts/extra
@@ -111,27 +110,27 @@ function main () {
         esac
     done
 
-    if [[ $# -eq 0 ]]; then
+    if [[ -z $stacks || -z $names ]]; then
         usage
         exit 255
     fi
 
     # build stack list
-    if [[ -n $stacks ]]; then
+    if [[ $stacks == 00 ]]; then
+        stacks=( $stacks )
+    else
         stacks=(
             $(for item in $stacks; do
                   seq -s '\n' $(expension "$item");
               done | sort -nr | uniq)
         )
-    else
-        usage
-        exit 255
     fi
 
     # loop the list to delete stacks
-    declare stack
+    declare stack index
     for stack in ${stacks[@]}; do
-        delete-stack "${names[stack]}" "${profiles[stack]}" "$region"
+        index=$(($stack))
+        delete-stack "${names[index]}" "${profiles[index]}" "$region"
     done
 }
 
