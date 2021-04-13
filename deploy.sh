@@ -18,22 +18,20 @@ set -e -o pipefail
 #?   [-x STACKS ...]
 #?
 #?   The STACKS specifies the stacks index that will be operated on.
+#?
 #?   The STACKS option argument is a whitespace separated set of numbers and/or
 #?   number ranges. Number ranges consist of a number, a dash ('-'), and a second
 #?   number and select the stacks from the first number to the second, inclusive.
 #?
-#?   Numbers or number ranges may be preceded by a dash, which selects all stacks
-#?   from 0 to the last number.
-#?   Numbers or number ranges may be followed by a dash, which selects all stacks
-#?   from the last number to the last stacks.
-#?
 #?   The number 0 is specially held for the manager stack, and the rest numbers
 #?   started from 1 is for the node stacks.
 #?
-#?   The number 00 is specially held for a single stack that puts the manager
+#?   The string `00` is specially held for a single stack that puts the manager
 #?   and the node together.
 #?
-#?   The default STACKS is 00.
+#?   The manager stack is always being deployed before the node stacks.
+#?
+#?   The default STACKS is `00`.
 #?
 #?   [-p PROFILES ...]
 #?
@@ -82,15 +80,18 @@ function usage () {
         | awk '{gsub(/^[^ ]+.*/, "\033[1m&\033[0m"); print}'
 }
 
-function expension () {
-    awk -F- '{
-        if (NF==1) {
-            print $1, $1
-        } else if (NF==2) {
-            if ($1 == "") $1 = 0;
-            if ($2 == "") system("usage");
-            print $1, $2
-        }}' <<< "${1:?}"
+function expansion () {
+    #? Usage:
+    #?   expansion <NUMBER|RANGE> [...]
+    #? Option:
+    #?   <NUMBER|RANGE>: a set of numbers and/or number ranges, the range's delimiter is dash `-`.
+    #? Output:
+    #?   The numbers listed in multi-line, sorted in ASC order, merged the duplicates.
+    #?
+    declare range
+    for range in "$@"; do
+        seq -s '\n' $(awk -F- '{print $1, $NF}' <<< "${range:?}")
+    done | sort -n | uniq
 }
 
 function update-config () {
@@ -193,7 +194,7 @@ function main () {
                 ;;
         esac
     done
-    if [[ -z $confs || -z $stacks ]]; then
+    if [[ -z $stacks || -z $confs ]]; then
         usage
         exit 255
     fi
@@ -202,16 +203,12 @@ function main () {
     if [[ $stacks == 00 ]]; then
         stacks=( $stacks )
     else
-        stacks=(
-            $(for item in $stacks; do
-                  seq -s '\n' $(expension "$item");
-              done | sort -n | uniq)
-        )
+        stacks=( $(expansion "${stacks[@]}") )
     fi
 
     # loop the list to deploy stacks
     declare stack index tmpfile=/tmp/aws-cfn-vpn-$RANDOM mgr_stack_name json
-    for stack in ${stacks[@]}; do
+    for stack in "${stacks[@]}"; do
         index=$((stacks))
         activate "${profiles[index]}"
         update-config "${confs[index]}" "$stack" "$region" "$json"

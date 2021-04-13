@@ -22,20 +22,18 @@ set -e -o pipefail
 #?   [-x STACKS]
 #?
 #?   The STACKS specifies the stacks index that will be operated on.
+#?
 #?   The STACKS option argument is a whitespace separated set of numbers and/or
 #?   number ranges. Number ranges consist of a number, a dash ('-'), and a second
 #?   number and select the stacks from the first number to the second, inclusive.
 #?
-#?   Numbers or number ranges may be preceded by a dash, which selects all stacks
-#?   from 0 to the last number.
-#?
 #?   The number 0 is specially held for the manager stack, and the rest numbers
 #?   started from 1 is for the node stacks.
 #?
-#?   The number 00 is specially held for a single stack that puts the manager
+#?   The string `00` is specially held for a single stack that puts the manager
 #?   and the node together.
 #?
-#?   The default STACKS is 00.
+#?   The default STACKS is `00`.
 #?
 #?   [-n NAME]
 #?
@@ -85,6 +83,20 @@ set -e -o pipefail
 function usage () {
     awk '/^#\?/ {sub("^[ ]*#\\?[ ]?", ""); print}' "$0" \
         | awk '{gsub(/^[^ ]+.*/, "\033[1m&\033[0m"); print}'
+}
+
+function expansion () {
+    #? Usage:
+    #?   expansion <NUMBER|RANGE> [...]
+    #? Option:
+    #?   <NUMBER|RANGE>: a set of numbers and/or number ranges, the range's delimiter is dash `-`.
+    #? Output:
+    #?   The numbers listed in multi-line, sorted in ASC order, merged the duplicates.
+    #?
+    declare range
+    for range in "$@"; do
+        seq -s '\n' $(awk -F- '{print $1, $NF}' <<< "${range:?}")
+    done | sort -n | uniq
 }
 
 function create-config () {
@@ -154,21 +166,12 @@ function update-config () {
     done
 }
 
-function expension () {
-    awk -F- '{
-        if (NF==1) {
-            print $1, $1
-        } else if (NF==2) {
-            if ($1 == "") $1 = 0;
-            if ($2 == "") system("usage");
-            print $1, $2
-        }}' <<< "${1:?}"
-}
-
 function main () {
     declare region stacks=00 name=vpn env=sample suffix=1 \
             domain dns dns_username dns_credential \
-            OPTAND OPTARG opt
+            OPTIND OPTARG opt
+
+    xsh import /util/getopts/extra
 
     while getopts r:x:n:e:Sd:N:u:p:h opt; do
         case $opt in
@@ -176,7 +179,8 @@ function main () {
                 region=$OPTARG
                 ;;
             x)
-                stacks=$OPTARG
+                x-util-getopts-extra "$@"
+                stacks=( "${OPTARG[@]}" )
                 ;;
             n)
                 name=$OPTARG
@@ -206,18 +210,16 @@ function main () {
         esac
     done
 
-    # build stack list
     if [[ -z $stacks ]]; then
         usage
         exit 255
-    elif [[ $stacks == 00 ]]; then
+    fi
+
+    # build stack list
+    if [[ $stacks == 00 ]]; then
         stacks=( $stacks )
     else
-        stacks=(
-            $(for item in $stacks; do
-                  seq -s '\n' $(expension "$item");
-              done | sort -n | uniq)
-        )
+        stacks=( $(expansion "${stacks[@]}") )
     fi
 
     # loop the list to generate config files
