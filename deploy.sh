@@ -209,7 +209,7 @@ function main () {
     # loop the list to deploy stacks
     declare stack index tmpfile=/tmp/aws-cfn-vpn-$RANDOM mgr_stack_name json
     for stack in "${stacks[@]}"; do
-        index=$((stacks))
+        index=$((stack))
         activate "${profiles[index]}"
         update-config "${confs[index]}" "$stack" "$region" "$json"
 
