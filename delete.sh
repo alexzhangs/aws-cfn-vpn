@@ -67,6 +67,7 @@ function expansion () {
     #?
     declare range
     for range in "$@"; do
+        # shellcheck disable=SC2046
         seq -s '\n' $(awk -F- '{print $1, $NF}' <<< "${range:?}")
     done | sort -n | uniq
 }
@@ -112,28 +113,33 @@ function main () {
         esac
     done
 
+    # shellcheck disable=SC2128
     if [[ -z $stacks || -z $names ]]; then
         usage
         exit 255
     fi
 
     # build stack list
+    # shellcheck disable=SC2128
     if [[ $stacks == 00 ]]; then
-        stacks=( $stacks )
+        stacks=( "$stacks" )
     else
         # sorting in DESC order, make sure the manager stack is processed at the last
         stacks=( $(expansion "${stacks[@]}" | sort -r) )
+        # shellcheck disable=SC2207
     fi
 
     # loop the list to delete stacks
     declare stack index
-    for stack in ${stacks[@]}; do
-        index=$(($stack))
+    for stack in "${stacks[@]}"; do
+        index=$((stack))
         delete-stack "${names[index]}" "${profiles[index]}" "$region"
     done
 }
 
-declare BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+declare BASE_DIR
+# shellcheck disable=SC2034
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 main "$@"
 

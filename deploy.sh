@@ -90,6 +90,7 @@ function expansion () {
     #?
     declare range
     for range in "$@"; do
+        # shellcheck disable=SC2046
         seq -s '\n' $(awk -F- '{print $1, $NF}' <<< "${range:?}")
     done | sort -n | uniq
 }
@@ -125,7 +126,7 @@ function update-config () {
 
 function get-stack-output-param () {
     declare json=${1:?} name=${2:?}
-    xsh /json/parser eval "$json" "[item['OutputValue'] for item in {JSON}['Stacks'][0]['Outputs'] if item['OutputKey'] == '"$name"'][0]"
+    xsh /json/parser eval "$json" "[item['OutputValue'] for item in {JSON}['Stacks'][0]['Outputs'] if item['OutputKey'] == '""$name""'][0]"
 }
 
 function get-keypairname () {
@@ -194,15 +195,18 @@ function main () {
                 ;;
         esac
     done
+    # shellcheck disable=SC2128
     if [[ -z $stacks || -z $confs ]]; then
         usage
         exit 255
     fi
 
     # build stack list
+    # shellcheck disable=SC2128
     if [[ $stacks == 00 ]]; then
-        stacks=( $stacks )
+        stacks=( "$stacks" )
     else
+        # shellcheck disable=SC2207
         stacks=( $(expansion "${stacks[@]}") )
     fi
 
@@ -229,7 +233,8 @@ function main () {
     done
 }
 
-declare BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+declare BASE_DIR
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 main "$@"
 

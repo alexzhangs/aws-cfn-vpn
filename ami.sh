@@ -78,6 +78,8 @@ function AMI () {
     #?   AMI <REGION>
     #?
     declare region=${1:?} filters location id
+    # shellcheck disable=SC2191
+    # shellcheck disable=SC2054
     filters=(
         Name=owner-alias,Values=amazon
         Name=is-public,Values=true
@@ -114,6 +116,7 @@ function AMIs () {
     #?   AMIs
     #?
     declare regions index ami
+    # shellcheck disable=SC2207
     regions=( $(regions) )
     for index in "${!regions[@]}"; do
         printf "." >&2
@@ -141,6 +144,7 @@ function wrap () {
 }
 EOF
     indent_amis=$(printf '%s' "$amis" | sed 's/^/    /')   # indent level: +2
+    # shellcheck disable=SC2059
     printf "$wrapper\n" "$indent_amis"
 }
 
@@ -149,7 +153,7 @@ function update () {
     #?   update <MAPPING> <FILE>
     #?
     declare mapping=${1:?} file=${2:?}
-    printf "updating mapping in: $file ..."
+    printf 'updating mapping in: %s ...' "$file"
     xsh /file/inject \
         -c "$mapping" \
         -p before \
@@ -161,6 +165,7 @@ function update () {
 }
 
 function main () {
+    # shellcheck disable=SC2034
     declare template mapping \
             OPTAND OPTARG opt
 
@@ -180,13 +185,15 @@ function main () {
     printf '%s\n' "$mapping"
 
     if [[ -n $template ]]; then
-        mapping=$(sed 's/^/  /' <<< "$mapping")  # indent level: +1
+        mapping=${mapping/#/  }  # indent level: +1
         mapping=${mapping},  # append comma
         update "$mapping" "$template"
     fi
 }
 
-declare BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+declare BASE_DIR
+# shellcheck disable=SC2034
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 main "$@"
 

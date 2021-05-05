@@ -95,6 +95,7 @@ function expansion () {
     #?
     declare range
     for range in "$@"; do
+        # shellcheck disable=SC2046
         seq -s '\n' $(awk -F- '{print $1, $NF}' <<< "${range:?}")
     done | sort -n | uniq
 }
@@ -127,6 +128,7 @@ function create-config () {
 }
 
 function update-config () {
+    # shellcheck disable=SC2034
     declare file=${1:?} stack=${2:?} stack_name=${3:?} environment=${4:?} \
             random_stack_name_suffix=${5:?} domain=$6 DomainNameServer=$7 \
             DomainNameServerUsername=$8 DomainNameServerCredential=$9
@@ -141,9 +143,11 @@ function update-config () {
         xsh /util/sed-inplace "s|^$param=[^\"]*|$param=${!lower_param}|" "$file"
     done
 
+    # shellcheck disable=SC2034
     declare KeyPairName="aws-ek-$stack_name-$environment-<REGION>" \
             Domain SSMDomain SSMAdminEmail L2TPDomain SSDomain
 
+    # shellcheck disable=SC2034
     if [[ -n $domain ]]; then
         # get the root domain
         Domain=$(echo $domain | awk -F. 'NF>1 {OFS=FS; print $(NF-1), $NF}')
@@ -167,17 +171,14 @@ function update-config () {
 }
 
 function main () {
-    declare region stacks=00 name=vpn env=sample suffix=1 \
+    declare stacks=00 name=vpn env=sample suffix=1 \
             domain dns dns_username dns_credential \
             OPTIND OPTARG opt
 
     xsh import /util/getopts/extra
 
-    while getopts r:x:n:e:Sd:N:u:p:h opt; do
+    while getopts x:n:e:Sd:N:u:p:h opt; do
         case $opt in
-            r)
-                region=$OPTARG
-                ;;
             x)
                 x-util-getopts-extra "$@"
                 stacks=( "${OPTARG[@]}" )
@@ -210,15 +211,18 @@ function main () {
         esac
     done
 
+    # shellcheck disable=SC2128
     if [[ -z $stacks ]]; then
         usage
         exit 255
     fi
 
     # build stack list
+    # shellcheck disable=SC2128
     if [[ $stacks == 00 ]]; then
-        stacks=( $stacks )
+        stacks=( "$stacks" )
     else
+        # shellcheck disable=SC2207
         stacks=( $(expansion "${stacks[@]}") )
     fi
 
@@ -235,7 +239,8 @@ function main () {
     done
 }
 
-declare BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+declare BASE_DIR
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 
 main "$@"
 
