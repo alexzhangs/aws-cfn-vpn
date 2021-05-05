@@ -125,8 +125,8 @@ function main () {
         stacks=( "$stacks" )
     else
         # sorting in DESC order, make sure the manager stack is processed at the last
-        stacks=( $(expansion "${stacks[@]}" | sort -r) )
         # shellcheck disable=SC2207
+        stacks=( $(expansion "${stacks[@]}" | sort -nr) )
     fi
 
     # loop the list to delete stacks
