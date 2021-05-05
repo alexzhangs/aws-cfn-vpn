@@ -1,6 +1,6 @@
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors)
-
-[![GitHub tag](https://img.shields.io/github/tag/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/) [![GitHub](https://img.shields.io/github/license/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/) [![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/aws-cfn-vpn?sort=date)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub](https://img.shields.io/github/license/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
 
 [![GitHub issues](https://img.shields.io/github/issues/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
@@ -561,28 +561,10 @@ gates.
 1. Encountering errors while executing EC2 userdata.
 
    This might be caused by using the untested AWS AMI.
-   The EC2 userdata is tested only with the AMI listed in the template.
-
-   ```json
-   "Mappings": {
-     "RegionMap": {
-       "ap-east-1": {
-         "location": "Asia Pacific (Hong Kong)"
-       },
-       "ap-northeast-1": {
-         "AMI": "ami-0992fc94ca0f1415a",
-         "location": "Asia Pacific (Tokyo)"
-       },
-       ...
-     }
-   }
-   ```
-
-   For the regions without an AMI, you need to figure it out by
-   yourself. The tested AMIs:
+   The EC2 userdata is tested only with the following AMIs:
 
    * Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
-   * Amazon Linux 2 AMI (HVM), SSD Volume Type (THIS AMI IS
-     RECOMMENDED for aws-cfn-vpn)
+   * Amazon Linux 2 AMI (HVM), SSD Volume Type - This AMI is
+     **RECOMMENDED** for `aws-cfn-vpn`
 
    Feel free to open pull requests for the verified compatible AMIs.
