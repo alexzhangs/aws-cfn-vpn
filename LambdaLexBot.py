@@ -1,13 +1,21 @@
-'''
+#!/usr/bin/env python
+
+"""
 Manage the shadowsocks-manager nodes through AWS Lex Bot.
-'''
-import os, logging, json, boto3
+"""
+
+import boto3
+import json
+import logging
+import os
+
+print('Loading function')
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-# Helpers to build responses which match the structure of the necessary dialog actions
 
+# Helpers to build responses which match the structure of the necessary dialog actions
 
 def call_ssm(**kwargs):
     client = boto3.client('lambda')
@@ -62,7 +70,6 @@ def delegate(session_attributes, slots):
 
 # Helper Functions
 
-
 def build_validation_result(is_valid, violated_slot, message_content):
     if message_content is None:
         return {
@@ -76,13 +83,16 @@ def build_validation_result(is_valid, violated_slot, message_content):
         'message': {'contentType': 'PlainText', 'content': message_content}
     }
 
+
 def get_instances():
     return call_ssm(action='list', model='Node', filter=None)
+
 
 def get_sns_endpoint(instance):
     for i in get_instances() or []:
         if instance.lower() == i['name'].lower():
             return i['sns_endpoint']
+
 
 def validate_instance(instance):
     names = [i['name'].lower() for i in get_instances() or []]
@@ -97,7 +107,6 @@ def validate_instance(instance):
 
 
 # Functions that control the bot's behavior
-
 
 def change_ip(intent_request):
     # Performs dialog management and fulfillment for changing IP address.
@@ -129,9 +138,9 @@ def change_ip(intent_request):
     sns_endpoint = get_sns_endpoint(instance)
     if not sns_endpoint:
         return close(intent_request['sessionAttributes'],
-                 'Failed',
-                 {'contentType': 'PlainText',
-                  'content': '{}: not found the SNS endpoint on this instance.'.format(instance)})
+                     'Failed',
+                     {'contentType': 'PlainText',
+                      'content': '{}: not found the SNS endpoint on this instance.'.format(instance)})
     resource = boto3.resource('sns')
     topic = resource.Topic(sns_endpoint)
     topic.publish(
@@ -145,11 +154,11 @@ def change_ip(intent_request):
 
 # Intents
 
-
 def dispatch(intent_request):
     # Called when the user specifies an intent for this bot.
 
-    logger.debug('dispatch userId={}, intentName={}'.format(intent_request['userId'], intent_request['currentIntent']['name']))
+    logger.debug(
+        'dispatch userId={}, intentName={}'.format(intent_request['userId'], intent_request['currentIntent']['name']))
 
     intent_name = intent_request['currentIntent']['name']
 
@@ -161,7 +170,6 @@ def dispatch(intent_request):
 
 
 # Main handler
-
 
 def lambda_handler(event, context):
     # Route the incoming request based on intent.

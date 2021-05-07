@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''
+"""
 Provide the Lambda interface for the shadowsocks-manager REST APIs:
 NameServer, Domain, Record, Node and SSManager.
 
@@ -21,12 +21,15 @@ response = client.invoke(
 )
 obj = response['Payload']
 
-'''
+"""
 
-import os, json
-import boto3, botocore.vendored.requests as requests
+import json
+import os
+import boto3
+import botocore.vendored.requests as requests
 
 print('Loading function')
+
 
 def lambda_handler(event, context):
     print('Received event: ' + json.dumps(event))
@@ -63,6 +66,7 @@ def lambda_handler(event, context):
     else:
         raise ValueError('{}: invalid action.'.format(action))
 
+
 def get_ec2_inst_of_cfn_stack(stack_id, logical_id):
     ec2 = boto3.resource('ec2')
     insts = ec2.instances.filter(Filters=[
@@ -72,6 +76,7 @@ def get_ec2_inst_of_cfn_stack(stack_id, logical_id):
     try: return inst
     except NameError:
         raise RuntimeError('not found the EC2 instance: {}, in CloudFormation stack: {}'.format(logical_id, stack_id))
+
 
 class Backend(object):
     def __init__(self, host, port=80, schema='http', user=None, password=None):
@@ -102,9 +107,10 @@ class Backend(object):
         resp = self.call('get', url)
         if resp:
             resp = self.call('post', url, timeout=5,
-                data=dict(username=self.user, password=self.password, next='/'))
+                             data=dict(username=self.user, password=self.password, next='/'))
         if resp: self.authenticated = True
         return resp
+
 
 class BaseAPI(object):
     path = '/'
@@ -119,15 +125,16 @@ class BaseAPI(object):
     @classmethod
     def call(cls, *args, **kwargs):
         if (
-            cls.auth_path
-            and not cls.backend.authenticated
-            and not cls.backend.authenticate(cls.get_url(auth=True))
+                cls.auth_path
+                and not cls.backend.authenticated
+                and not cls.backend.authenticate(cls.get_url(auth=True))
         ):
             print('failed to authenticate')
             return
         resp = cls.backend.call(*args, **kwargs)
         if resp is not None:
             return resp.json()
+
 
 class BaseModel(object):
     class API(BaseAPI):
@@ -146,7 +153,7 @@ class BaseModel(object):
         if not method:
             method = 'post' if self.id is None else 'put'
         result = self.API.call(method, self.API.get_url(self.id),
-            data=self.serialize(fields=fields))
+                               data=self.serialize(fields=fields))
         if result: self.__dict__.update(result)
         return self
 
@@ -162,21 +169,26 @@ class BaseModel(object):
             if isinstance(v, (int, str)): data[k] = v
         return data
 
+
 class NameServer(BaseModel):
     class API(BaseModel.API):
         path = '/domain/nameserver/'
+
 
 class Domain(BaseModel):
     class API(BaseModel.API):
         path = '/domain/domain/'
 
+
 class Record(BaseModel):
     class API(BaseModel.API):
         path = '/domain/record/'
 
+
 class Node(BaseModel):
     class API(BaseModel.API):
         path = '/shadowsocks/node/'
+
 
 class SSManager(BaseModel):
     class API(BaseModel.API):

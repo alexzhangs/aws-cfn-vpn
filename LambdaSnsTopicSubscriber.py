@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
-# Description:
-#   Receive AWS Config events through SNS, update NameServer, Domain, Record, Node, and SSManager
-#   in shadowsocks-manager.
+"""
+Receive AWS Config events through SNS, update NameServer, Domain, Record, Node, and SSManager
+in shadowsocks-manager.
+"""
 
-import time, os, json
-import boto3, botocore.vendored.requests as requests
+import json
+import os
+import time
+import boto3
 
 print('Loading function')
+
 
 def call_ssm(**kwargs):
     client = boto3.client('lambda')
@@ -20,6 +24,7 @@ def call_ssm(**kwargs):
     if func_resp and isinstance(func_resp, dict) and func_resp.get('errorMessage'):
         return None
     return func_resp
+
 
 def lambda_handler(event, context):
     try:
@@ -40,21 +45,26 @@ def lambda_handler(event, context):
 
     cicn_inst.process()
 
+
 def get_long_region_name(region):
     # get the long name of AWS region
     client = boto3.client('ssm')
-    resp = client.get_parameter(Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
+    resp = client.get_parameter(
+        Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
     return resp['Parameter']['Value']
+
 
 def get_host_from_domain(domain):
     items = domain.split('.')
     bound = len(items) - 2
     return '.'.join(items[:bound])
 
+
 def get_root_from_domain(domain):
     items = domain.split('.')
     bound = len(items) - 2
     return '.'.join(items[bound:])
+
 
 # timeout and delay: in Seconds
 def wait_call(timeout, delay, func, *args, **kwargs):
@@ -65,6 +75,7 @@ def wait_call(timeout, delay, func, *args, **kwargs):
             return ret
         else:
             time.sleep(delay)
+
 
 def create_record(domain, append=False, **kwargs):
     root = get_root_from_domain(domain)
@@ -87,12 +98,14 @@ def create_record(domain, append=False, **kwargs):
             return
     return call_ssm(action='save', model='Record', data=record)
 
+
 def delete_record(domain):
     root = get_root_from_domain(domain)
     host = get_host_from_domain(domain)
     records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
     if records:
         return call_ssm(action='delete', model='Record', data=records[0])
+
 
 def create_node(name, domain, **kwargs):
     nodes = call_ssm(action='list', model='Node', filter=dict(name=name))
@@ -110,12 +123,14 @@ def create_node(name, domain, **kwargs):
             return
     return call_ssm(action='save', model='Node', data=node)
 
+
 def delete_node(name):
     nodes = call_ssm(action='list', model='Node', filter=dict(name=name))
     if nodes:
         node = nodes[0]
         node['is_active'] = False
         return call_ssm(action='save', model='Node', method='PATCH', data=node, fields=['is_active'])
+
 
 def create_ssmanager(node_name, **kwargs):
     ssmanagers = call_ssm(action='list', model='SSManager', filter=dict(node__name=node_name))
@@ -125,7 +140,7 @@ def create_ssmanager(node_name, **kwargs):
     else:
         nodes = call_ssm(action='list', model='Node', filter=dict(name=node_name))
         if nodes:
-            ssmanager = dict(node = nodes[0]['id'], **kwargs)
+            ssmanager = dict(node=nodes[0]['id'], **kwargs)
         else:
             print('not found the instance of Node: {} for creating the ssmanager'.format(node_name))
             return
@@ -133,7 +148,6 @@ def create_ssmanager(node_name, **kwargs):
 
 
 class CICN(object):
-
     # Configuration Item Change Notification
     type = 'ConfigurationItemChangeNotification'
 
@@ -165,7 +179,8 @@ class CICN(object):
             return result
         elif self.change_type == 'DELETE':
             result = self.diff_item['changedProperties']['Configuration']['previousValue']
-            result.update(self.diff_item['changedProperties'].get('SupplementaryConfiguration.Tags', {}).get('previousValue', {}))
+            result.update(
+                self.diff_item['changedProperties'].get('SupplementaryConfiguration.Tags', {}).get('previousValue', {}))
             return result
         else:
             return
@@ -186,7 +201,6 @@ class CICN(object):
 
 
 class Handler(object):
-
     resource_type = None
 
     def __init__(self, cicn):
@@ -206,7 +220,6 @@ class Handler(object):
 
 
 class NameServerHandler(Handler):
-
     resource_type = 'AWS::EC2::Instance'
 
     @property
@@ -230,11 +243,11 @@ class NameServerHandler(Handler):
         if nameservers:
             nameserver['id'] = nameservers[0]['id']
 
-        return call_ssm(action='save', model='NameServer', method='PATCH', data=nameserver, fields=['user','credential'])
+        return call_ssm(action='save', model='NameServer', method='PATCH', data=nameserver,
+                        fields=['user', 'credential'])
 
 
 class DomainHandler(Handler):
-
     resource_type = 'AWS::EC2::Instance'
 
     @property
@@ -259,7 +272,6 @@ class DomainHandler(Handler):
 
 
 class SsmRecordHandler(Handler):
-
     resource_type = 'AWS::ElasticLoadBalancing::LoadBalancer'
 
     @property
@@ -280,7 +292,6 @@ class SsmRecordHandler(Handler):
 
 
 class L2tpRecordHandler(Handler):
-
     resource_type = 'AWS::EC2::Instance'
 
     @property
@@ -295,7 +306,6 @@ class L2tpRecordHandler(Handler):
 
 
 class SsnRecordHandler(Handler):
-
     resource_type = 'AWS::EC2::Instance'
 
     @property
@@ -310,7 +320,6 @@ class SsnRecordHandler(Handler):
 
 
 class NodeHandler(Handler):
-
     resource_type = 'AWS::EC2::Instance'
 
     @property
@@ -338,7 +347,6 @@ class NodeHandler(Handler):
 
 
 class SSManagerHandler(Handler):
-
     resource_type = 'AWS::EC2::Instance'
 
     @property
