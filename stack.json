@@ -349,6 +349,7 @@
                 "\",\"encrypt\":\"", {"Ref": "SSEncrypt"},
                 "\",\"timeout\":\"", {"Ref": "SSTimeout"},
                 "\",\"fastopen\":\"", {"Ref": "SSFastopen"},
+                "\",\"server_edition\":\"", 1,
                 "\"}"
               ]]}
             },
