@@ -162,7 +162,7 @@
         "CidrIp": {"Fn::If":[
           "EnableVpcPeerRequester",
           {"Ref": "VpcPeerAccepterCidrBlock"},
-          {"Ref": "VpcCidrBlock"},
+          {"Ref": "VpcCidrBlock"}
         ]},
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
@@ -474,14 +474,7 @@
                 "/opt/aws/bin/cfn-signal -e $?",
                 " --stack ", {"Ref": "AWS::StackName"},
                 " --resource VPNServerInstance",
-                " --region ", {"Ref": "AWS::Region"}, "\n",
-
-                {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
-                  "# wait for EIP get ready.\n",
-                  "sleep 60\n",
-                  "# restart services to be aware of the EIP.\n",
-                  "supervisorctl reload\n"
-                ]]}, ""]}
+                " --region ", {"Ref": "AWS::Region"}, "\n"
               ]
             ]
           }
