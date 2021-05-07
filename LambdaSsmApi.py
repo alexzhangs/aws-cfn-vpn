@@ -93,7 +93,7 @@ class Backend(object):
         resp = self.session.request(*args, **kwargs)
         if resp:
             self.csrftoken = self.session.cookies.get('csrftoken', None)
-        print('{}: {}'.format(str(resp), resp.text))
+        print('{}: {}'.format(str(resp), resp.text.replace('\n', '\r') if resp.text else None))
         return resp
 
     def authenticate(self, url):

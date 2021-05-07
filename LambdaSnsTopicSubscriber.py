@@ -22,14 +22,18 @@ def call_ssm(**kwargs):
     return func_resp
 
 def lambda_handler(event, context):
-    print('Received event: ' + json.dumps(event))
-    subject = event['Records'][0]['Sns']['Subject']
-    print('SNS subject: ' + subject)
-    message = event['Records'][0]['Sns']['Message']
-    print('SNS message: ' + message)
-
     try:
+        subject = event['Records'][0]['Sns']['Subject']
+        message = event['Records'][0]['Sns']['Message']
         cicn_inst = CICN(json.loads(message))
+
+        if cicn_inst.change_type == 'DELETE':
+            print('skip this event: ' + subject)
+            return
+
+        print('Received event: ' + json.dumps(event))
+        print('SNS subject: ' + subject)
+        print('SNS message: ' + message)
     except ValueError as e:
         print('skip this event: ' + str(e))
         return
@@ -178,7 +182,7 @@ class CICN(object):
         for handler_cls in self.handlers or []:
             handler_inst = handler_cls(self)
             result = getattr(handler_inst, self.change_type.lower())()
-            print(handler_cls, result)
+            print(self.change_type, handler_cls, result)
 
 
 class Handler(object):
