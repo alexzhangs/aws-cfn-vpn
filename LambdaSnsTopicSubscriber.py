@@ -239,7 +239,7 @@ class DomainHandler(Handler):
 
     def create(self):
         domain = dict(name=self.domain)
-        domains = call_ssm(action='list', model='Domain', filter=dict(name=domain))
+        domains = call_ssm(action='list', model='Domain', filter=dict(name=self.domain))
         if domains:
             domain['id'] = domains[0]['id']
 
