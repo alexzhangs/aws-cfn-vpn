@@ -57,11 +57,11 @@ def lambda_handler(event, context):
         return [i.serialize() for i in insts]
     elif action == 'save':
         inst = cls(**event['data'])
-        inst.save(method=event.get('method'), fields=event.get('fields'))
+        inst = inst.save(method=event.get('method'), fields=event.get('fields'))
         return inst.serialize()
     elif action == 'delete':
         inst = cls(**event['data'])
-        inst.delete()
+        inst = inst.delete()
         return inst.serialize()
     else:
         raise ValueError('{}: invalid action.'.format(action))
@@ -72,6 +72,7 @@ def get_ec2_inst_of_cfn_stack(stack_id, logical_id):
     insts = ec2.instances.filter(Filters=[
         dict(Name='tag:aws:cloudformation:stack-id', Values=[stack_id]),
         dict(Name='tag:aws:cloudformation:logical-id', Values=[logical_id])])
+    inst = None
     for inst in insts: pass
     try: return inst
     except NameError:
