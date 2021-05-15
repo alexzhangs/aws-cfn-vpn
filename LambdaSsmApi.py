@@ -25,6 +25,7 @@ obj = response['Payload']
 
 import json
 import os
+import time
 import boto3
 import botocore.vendored.requests as requests
 
@@ -38,13 +39,20 @@ def lambda_handler(event, context):
     ssm_ec2_logical_id = os.getenv('SSM_EC2_LOGICAL_ID')
     ssm_ec2_inst = get_ec2_inst_of_cfn_stack(stack_id, ssm_ec2_logical_id)
 
-    # the Lambda functiion may be called before the instance is ready
+    # the Lambda function may be called before the instance is ready
     print('checking EC2 instance status, and will wait until it comes to RUNNING.')
     ssm_ec2_inst.wait_until_running()
-    print('check passed.')
+    print('RNNING')
+
+    # the Lambda function may be called before the Elastic IP is ready
+    print('checking Elastic IP status, and will wait until it is ready.')
+    eip = None
+    while not eip:
+        eip = [interface.association_attribute.get('PublicIp') for interface in ssm_ec2_inst.network_interfaces if interface]
+    print(eip)
 
     BaseAPI.backend = Backend(
-        host=ssm_ec2_inst.public_ip_address,
+        host=eip.pop(),
         port=os.getenv('SSM_PORT'),
         user=os.getenv('SSM_ADMIN_USERNAME'),
         password=os.getenv('SSM_ADMIN_PASSWORD')
