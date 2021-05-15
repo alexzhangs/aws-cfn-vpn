@@ -58,7 +58,7 @@
             {"Ref": "SnsTopicArn"}
           ]}
         },
-        "TimeoutInMinutes": "3"
+        "TimeoutInMinutes": "5"
       }
     },
     "LexBotStack": {
@@ -412,7 +412,7 @@
             "Fn::Join": [
               "",
               [
-                "#!/bin/bash -x\n",
+                "#!/bin/bash -ex\n",
                 "yum update -y aws-cfn-bootstrap\n",
                 "# Install the files and packages from the metadata\n",
                 "#/opt/aws/bin/cfn-init ",
