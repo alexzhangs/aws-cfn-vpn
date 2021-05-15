@@ -77,7 +77,7 @@ set -e -o pipefail
 #?
 #?   # creating 1 manager config file and 3 node config files using domain
 #?   #  plus the Nameserver API enabled:
-#?   $ config.sh -x 0-3 -d example.com -n name.com -u myuser -p mytoken
+#?   $ config.sh -x 0-3 -d example.com -N name.com -u myuser -p mytoken
 #?
 
 function usage () {
