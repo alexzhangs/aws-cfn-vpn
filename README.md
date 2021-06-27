@@ -171,9 +171,9 @@ NOTE: If you are deploying one single stack but the clustered stacks,
 don't use these scripts. Simply pick up the config file
 `sample-ssm-and-ssn-0.conf` and use `xsh-lib/aws/cfn/deploy` to deploy it.
 
-#### aim.sh
+#### ami.sh
 
-The`aim.sh` is used to get the latest AMIs for all enabled regions.
+The`ami.sh` is used to get the latest AMIs for all enabled regions.
 With the `-t TEMPLATE` option, it will update the TEMPLATE file with
 the new mapping on the key `Mappings`.
 
@@ -207,7 +207,7 @@ deploy your stacks.
 
 ```bash
 declare name=vpn env=prod region=eu-west-2
-bash aim.sh -t stack.json
+bash ami.sh -t stack.json
 bash delete.sh -r "$region" -x 0-4 -p $name-{0..4} -d $name-{0..4}-$env
 bash config.sh -x 0-4 -n "$name" -e "$env" -S -d EXAMPLE.COM -N name.com -u YOUR_DNS_API_USER -p YOUR_DNS_API_TOKEN
 bash deploy.sh -r "$region" -x 0-4 -p $name-{0..4} -c $name-{0..4}-$env.conf
@@ -402,7 +402,7 @@ the three AWS CLI profiles and the three config files created in the
 earlier steps.
 
 ```bash
-$ bash aws-cfn-vpn/deploy.sh -x 0-2 -p profile-{0..2}  -c aws-cfn-vpn/vpn-{0..2}-sample.conf
+$ bash aws-cfn-vpn/deploy.sh -x 0-2 -p profile-{0..2} -c aws-cfn-vpn/vpn-{0..2}-sample.conf
 ```
 
 If HTTPS is enabled, but the DNS service API is not, you need to
