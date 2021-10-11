@@ -1,9 +1,9 @@
-[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/aws-cfn-vpn?sort=date)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/aws-cfn-vpn?sort=date)](https://github.com/alexzhangs/aws-cfn-vpn/tags)
 [![GitHub](https://img.shields.io/github/license/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
-[![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/commits/master)
 
-[![GitHub issues](https://img.shields.io/github/issues/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/)
+[![GitHub issues](https://img.shields.io/github/issues/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/aws-cfn-vpn.svg?style=flat-square)](https://github.com/alexzhangs/aws-cfn-vpn/pulls)
 
 # aws-cfn-vpn
 
