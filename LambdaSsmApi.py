@@ -25,7 +25,6 @@ obj = response['Payload']
 
 import json
 import os
-import time
 import boto3
 import botocore.vendored.requests as requests
 
@@ -42,7 +41,7 @@ def lambda_handler(event, context):
     # the Lambda function may be called before the instance is ready
     print('checking EC2 instance status, and will wait until it comes to RUNNING.')
     ssm_ec2_inst.wait_until_running()
-    print('RNNING')
+    print('RUNNING')
 
     # the Lambda function may be called before the Elastic IP is ready
     print('checking Elastic IP status, and will wait until it is ready.')
