@@ -483,7 +483,7 @@
       },
       "CreationPolicy": {
         "ResourceSignal": {
-          "Timeout": "PT8M"
+          "Timeout": "PT15M"
         }
       }
     },
