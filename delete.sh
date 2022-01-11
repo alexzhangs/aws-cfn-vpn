@@ -68,7 +68,7 @@ function expansion () {
     declare range
     for range in "$@"; do
         # shellcheck disable=SC2046
-        seq -s '\n' $(awk -F- '{print $1, $NF}' <<< "${range:?}")
+        seq $(awk -F- '{print $1, $NF}' <<< "${range:?}")
     done | sort -n | uniq
 }
 
