@@ -107,7 +107,8 @@ function update-config () {
             input_key=${item##*:}
             value="$(get-stack-output-param "$json" "$output_key")"
             echo "updating OPTIONS: $input_key ..."
-            xsh /util/sed-inplace "s|[[:<:]]${input_key}=[^\"]*|${input_key}=${value}|" "$file"
+            # (^\|[^a-zA-Z0-9_]): to match word boundary, for both GNU and BSD sed
+            xsh /util/sed-regex-inplace "s|(^\|[^a-zA-Z0-9_])${input_key}=[^\"]*|\1${input_key}=${value}|" "$file"
         done
     fi
 

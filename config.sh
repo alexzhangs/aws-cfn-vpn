@@ -165,8 +165,8 @@ function update-config () {
     for param in KeyPairName Domain SSMDomain SSMAdminEmail L2TPDomain SSDomain \
                  DomainNameServer DomainNameServerUsername DomainNameServerCredential; do
         echo "updating OPTIONS: $param ..."
-        # [[:<:]]: to match word boundary
-        xsh /util/sed-inplace "s|[[:<:]]$param=[^\"]*|$param=${!param}|" "$file"
+        # (^\|[^a-zA-Z0-9_]): to match word boundary, for both GNU and BSD sed
+        xsh /util/sed-regex-inplace "s|(^\|[^a-zA-Z0-9_])$param=[^\"]*|\1$param=${!param}|" "$file"
     done
 }
 
