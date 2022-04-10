@@ -75,7 +75,7 @@
     },
     "AcmStack": {
       "Type": "AWS::CloudFormation::Stack",
-      "Condition": "EnableSSL",
+      "Condition": "EnableSSMTLS",
       "Properties": {
         "TemplateURL": {"Ref": "AcmStackTemplateURL"},
         "Parameters": {
@@ -180,7 +180,7 @@
     },
     "SSMSslIngress": {
       "Type": "AWS::EC2::SecurityGroupIngress",
-      "Condition": "EnableSSL",
+      "Condition": "EnableSSMTLS",
       "Properties": {
         "IpProtocol": "tcp",
         "FromPort": 443,
@@ -191,7 +191,7 @@
     },
     "SSMElb": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Condition": "EnableSSL",
+      "Condition": "EnableSSMTLS",
       "Properties": {
         "SecurityGroups": [
           {"Ref": "VPNServerSG"}
@@ -867,10 +867,10 @@
     "EnableLexBot": {
       "Fn::Equals": [{"Ref": "EnableLexBot"}, "1"]
     },
-    "EnableSSL": {
+    "EnableSSMTLS": {
       "Fn::And": [
-        {"Fn::Equals": [{"Ref": "EnableSSM"}, "1"]},
-        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]}
+        {"Condition": "EnableSSM"},
+        {"Condition": "SSMDomainIsNotNull"}
       ]
     },
     "EnableDnsApi": {
