@@ -350,6 +350,7 @@
                 "\",\"timeout\":\"", {"Ref": "SSTimeout"},
                 "\",\"fastopen\":\"", {"Ref": "SSFastopen"},
                 "\",\"server_edition\":\"", 1,
+                "\",\"is_v2ray_enabled\":\"", {"Ref": "EnableV2ray"},
                 "\"}"
               ]]}
             },
@@ -440,6 +441,36 @@
                                                   ]}
                                        ]}, "\"",
                   " -p '", {"Ref": "SSManagerPort"}, "'\n"
+                ]]}, ""]},
+
+                {"Fn::If": ["EnableV2ray", {"Fn::Join": ["", [
+                  "curl -s https://get.acme.sh | bash -s email='", {"Ref":  "SSMAdminEmail"}, "' && . ~/.bashrc\n",
+
+                  "Namecom_Username='", {"Ref": "DomainNameServerUsername"}, "'",
+                  " Namecom_Token='", {"Ref": "DomainNameServerCredential"}, "'",
+                  " /.acme.sh/acme.sh --issue --dns dns_namecom",
+                  " -d '", {"Ref": "SSDomain"}, "'\n",
+
+                  "/.acme.sh/acme.sh --install-cert",
+                  " -d '", {"Ref": "SSDomain"}, "'",
+                  " --cert-file ~/.shadowsocks/", {"Ref": "SSDomain"}, ".cer",
+                  " --key-file ~/.shadowsocks/", {"Ref": "SSDomain"}, ".key\n",
+
+                  "curl -s -O https://dl.google.com/go/go1.16.10.linux-amd64.tar.gz\n",
+                  "tar -C /usr/local/bin -xvzf  go1.16.10.linux-amd64.tar.gz\n",
+                  "export PATH=/usr/local/bin/go/bin:$PATH\n",
+
+                  "curl -s https://raw.githubusercontent.com/alexzhangs/xsh/master/boot | bash && . ~/.xshrc\n",
+                  "xsh load xsh-lib/core\n",
+                  "xsh load xsh-lib/shadowsocks\n",
+
+                  "xsh ss/libev/plugin/v2ray/install\n",
+
+                  "xsh ss/libev/plugin/v2ray/config",
+                  " -n '", {"Ref": "SSDomain"}, "'",
+                  " -c ~/.shadowsocks/", {"Ref": "SSDomain"}, ".cer",
+                  " -k ~/.shadowsocks/", {"Ref": "SSDomain"}, ".key",
+                  " -w\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
@@ -852,6 +883,15 @@
     "EnableSSN": {
       "Fn::Equals": [{"Ref": "EnableSSN"}, "1"]
     },
+    "EnableV2ray": {
+      "Fn::And": [
+        {"Fn::Equals": [{"Ref": "EnableV2ray"}, "1"]},
+        {"Condition": "EnableSSN"},
+        {"Condition": "SSDomainIsNotNull"},
+        {"Condition": "EnableDnsApi"},
+        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMAdminEmail"}]}]},
+      ]
+    },
     "EnableSSM": {
       "Fn::Equals": [{"Ref": "EnableSSM"}, "1"]
     },
@@ -999,6 +1039,12 @@
       "Default": "1",
       "AllowedValues": ["0", "1"],
       "Description": "Whether to install Shadowsocks server. 0: no, 1: yes. Default is '1'."
+    },
+    "EnableV2ray": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether to enable v2ray plugin for Shadowsocks server. 0: no, 1: yes. Default is '0'."
     },
     "SnsTopicArn": {
       "Type": "String",
