@@ -21,7 +21,7 @@
         "Parameters": {
           "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]}
         },
-        "TimeoutInMinutes": "2"
+        "TimeoutInMinutes": "5"
       }
     },
     "VpcPeerRequesterStack": {
@@ -40,7 +40,7 @@
           "PeeringCidrBlock": {"Ref": "VpcPeerAccepterCidrBlock"},
           "PeeringSqsQueueUrl": {"Ref": "VpcPeerAccepterSqsQueueUrl"}
         },
-        "TimeoutInMinutes": "3"
+        "TimeoutInMinutes": "5"
       }
     },
     "ConfigProviderStack": {
