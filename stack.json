@@ -445,7 +445,11 @@
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableV2ray", {"Fn::Join": ["", [
-                  "curl -s https://get.acme.sh | bash -s email='", {"Ref":  "SSMAdminEmail"}, "' && . ~/.bashrc\n",
+                  "email='acme@", {"Ref":  "SSDomain"}, "'\n",
+                  "certfile=~/.shadowsocks/'", {"Ref": "SSDomain"}, "'.cer\n",
+                  "keyfile=~/.shadowsocks/'", {"Ref": "SSDomain"}, "'.key\n",
+
+                  "curl -s https://get.acme.sh | bash -s email=\"$email\" && . ~/.bashrc\n",
 
                   "Namecom_Username='", {"Ref": "DomainNameServerUsername"}, "'",
                   " Namecom_Token='", {"Ref": "DomainNameServerCredential"}, "'",
@@ -454,8 +458,8 @@
 
                   "~/.acme.sh/acme.sh --install-cert",
                   " -d '", {"Ref": "SSDomain"}, "'",
-                  " --cert-file ~/.shadowsocks/", {"Ref": "SSDomain"}, ".cer",
-                  " --key-file ~/.shadowsocks/", {"Ref": "SSDomain"}, ".key\n",
+                  " --cert-file \"$certfile\"",
+                  " --key-file \"$keyfile\"\n",
 
                   "curl -s -O https://dl.google.com/go/go1.16.10.linux-amd64.tar.gz\n",
                   "tar -C /usr/local -xvzf  go1.16.10.linux-amd64.tar.gz\n",
@@ -471,8 +475,8 @@
 
                   "xsh ss/libev/plugin/v2ray/config",
                   " -n '", {"Ref": "SSDomain"}, "'",
-                  " -c ~/.shadowsocks/", {"Ref": "SSDomain"}, ".cer",
-                  " -k ~/.shadowsocks/", {"Ref": "SSDomain"}, ".key",
+                  " -c \"$certfile\"",
+                  " -k \"$keyfile\"",
                   " -w\n",
 
                   "service shadowsocks-libev-manager restart\n"
@@ -894,7 +898,6 @@
         {"Condition": "EnableSSN"},
         {"Condition": "SSDomainIsNotNull"},
         {"Condition": "EnableDnsApi"},
-        {"Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMAdminEmail"}]}]},
       ]
     },
     "EnableSSM": {

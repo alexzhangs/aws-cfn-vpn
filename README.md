@@ -46,6 +46,7 @@ Shadowsocks-libev:
     * Amazon Lex chatbot
     * REST API
     * AWS SNS message
+* Support v2ray-plugin on node level.
 
 L2TPD:
 
@@ -67,6 +68,7 @@ aws-cfn-vpn (github)
 ├── aws-cfn-acm (github)
 ├── aws-ec2-shadowsocks-libev (github)
 │   └── shadowsocks-libev (yum)
+│       └── v2ray-plugin (github)
 ├── shadowsocks-manager (github)
 │   ├── django (pip)
 │   └── [aws-ec2-ses (github)] - Manually setup involved
@@ -156,9 +158,9 @@ used.
 
 ### sample-*.conf
 
-`sample-*.conf` are config files used by `xsh-lib/aws/cfn/deploy` to automate AWS CloudFormation template deployment.
+`sample-*.conf` are config files used by `deploy.sh` to automate AWS CloudFormation template deployment.
 
-`xsh-lib/aws/cfn/deploy` can be installed from repo
+> `xsh-lib/aws/cfn/deploy` is used by `deploy.sh` and can be installed from repo
 [xsh-lib/aws](https://github.com/xsh-lib/aws).
 
 ### *.sh
@@ -169,7 +171,7 @@ one single command.
 
 NOTE: If you are deploying one single stack but the clustered stacks,
 don't use these scripts. Simply pick up the config file
-`sample-ssm-and-ssn-0.conf` and use `xsh-lib/aws/cfn/deploy` to deploy it.
+`sample-00-sandbox.conf` and use `deploy.sh` to deploy it.
 
 #### ami.sh
 
@@ -227,16 +229,16 @@ There are 2 classic deployment methods:
 shadowsocks-manager, Shadosocks node, and L2TPD. This method is not
 recommended, the shadowsocks-manager will be unreachable once the
 node's network goes wrong.
-There's a sample config file `sample-ssm-and-ssn-0.conf` for this.
+There's a sample config file `sample-00-sandbox.conf` for this.
 
 1. Deploy at least 2 stacks, one for shadowsocks-manager and L2TPD,
 one or more for Shadowsocks nodes. Each one needs to be deployed in a
 different AWS account. That allows you to balance network traffic between AWS accounts.
 There are 3 sample config files for this.
 
-    * sample-ssm.conf
-    * sample-ssn-1.conf
-    * sample-ssn-2.conf
+    * sample-0-sandbox.conf
+    * sample-1-sandbox.conf
+    * sample-2-sandbox.conf
 
 ## Domain Name Design
 
@@ -394,6 +396,24 @@ aws-cfn-vpn/vpn-0-sample.conf
 aws-cfn-vpn/vpn-1-sample.conf
 aws-cfn-vpn/vpn-2-sample.conf
 ```
+
+#### v2ray-plugin
+
+[V2ray-plugin](https://github.com/shadowsocks/v2ray-plugin) TLS mode for Shadowsocks server is supported.
+
+This feature is experimental and is disabled by default. It requires several options to be set properly:
+
+```ini
+"EnableV2ray=1"
+"SSDomain=<v2ray.ss.yourdomain.com>"
+"DomainNameServer=name.com"
+"DomainNameServerUsername=<YourDomainNameServerUsername>"
+"DomainNameServerCredential=<YourDomainNameServerCredential>"
+```
+
+[acme.sh](https://github.com/acmesh-official/acme.sh) is internally used to provision TLS certificate automatically.
+
+> NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
 
 ### Create the manager stack and the node stacks
 
