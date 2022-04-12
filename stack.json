@@ -458,7 +458,7 @@
 
                   "~/.acme.sh/acme.sh --install-cert",
                   " -d '", {"Ref": "SSDomain"}, "'",
-                  " --cert-file \"$certfile\"",
+                  " --fullchain-file \"$certfile\"",
                   " --key-file \"$keyfile\"\n",
 
                   "curl -s -O https://dl.google.com/go/go1.16.10.linux-amd64.tar.gz\n",
