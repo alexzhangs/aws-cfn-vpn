@@ -152,10 +152,10 @@ function update-config () {
         # get the root domain
         Domain=$(echo "$domain" | awk -F. 'NF>1 {OFS=FS; print $(NF-1), $NF}')
 
-        SSMDomain=admin-$environment.ss.$domain
-        SSMAdminEmail=admin-$environment@$domain
-        L2TPDomain=vpn-$environment.$domain
-        SSDomain=ss-$environment.$domain
+        SSMDomain=admin.ss.$domain
+        SSMAdminEmail=admin@$domain
+        L2TPDomain=vpn.$domain
+        SSDomain=ss.$domain
     fi
 
     # update for OPTIONS:
