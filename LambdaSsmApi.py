@@ -47,7 +47,9 @@ def lambda_handler(event, context):
     print('checking Elastic IP status, and will wait until it is ready.')
     eip = None
     while not eip:
-        eip = [interface.association_attribute.get('PublicIp') for interface in ssm_ec2_inst.network_interfaces if interface]
+        eip = [interface.association_attribute.get('PublicIp')
+               for interface in ssm_ec2_inst.network_interfaces
+               if interface and interface.association_attribute.get('IpOwnerId') != 'amazon']
     print(eip)
 
     BaseAPI.backend = Backend(
