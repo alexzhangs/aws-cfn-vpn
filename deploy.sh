@@ -211,8 +211,8 @@ function main () {
         stacks=( $(expansion "${stacks[@]}") )
     fi
 
-    # loop the list to deploy stacks
     declare stack index tmpfile=/tmp/aws-cfn-vpn-$RANDOM mgr_stack_name json
+    # loop the list to deploy manager stack and update all confs
     for stack in "${stacks[@]}"; do
         index=$((stack))
         activate "${profiles[index]}"
@@ -228,7 +228,15 @@ function main () {
                 echo "failed to get stack name."
                 exit 255
             fi
-        else
+        fi
+    done
+
+    # loop the list to deploy all node stacks
+    for stack in "${stacks[@]}"; do
+        index=$((stack))
+        activate "${profiles[index]}"
+
+        if [[ $stack -gt 0 ]]; then
             deploy-stack "${confs[index]}" "${names[index]}" "$region"
         fi
     done
