@@ -10,7 +10,7 @@
 AWS CloudFormation Stack for VPN services.
 
 This Repo use AWS CloudFormation to automate the deployment of Shadowsocks
-and L2TPD, and is trying to make the deployment as easier as possible.
+and L2TPD, and is trying to make the deployment as easy as possible.
 
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
@@ -122,9 +122,9 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     The following chart shows how it works.
 
-    | Manager&Node Stacks | Manager Stack |
-    |---|---|
-    | Config events → S3 bucket → | → SNS -> Lambda → SSM REST APIs |
+    | Manager&Node Stacks           | Manager Stack                   |
+    |-------------------------------|---------------------------------|
+    | Config events → S3 bucket →   | → SNS -> Lambda → SSM REST APIs |
 
     For the details check
     [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
@@ -135,8 +135,8 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     The following chart shows the deployment topology and the control flow.
 
-    | 3rd Part Apps | Manager Stack | Node Stacks |
-    |---|---|---|
+    | 3rd Part Apps                 | Manager Stack        | Node Stacks                           |
+    |-------------------------------|----------------------|---------------------------------------|
     | Facebook, Slack, ... → text → | → Lex bot → Lambda → | → SNS → Lambda → CloudFormation → EIP |
 
     For the details check
@@ -149,9 +149,9 @@ used.
 
     The following chart shows how it works.
 
-    | Manager Stacks | 3rd DNS Service Provider |
-    |---|---|
-    | Custom Resource → Lambda | → API → DNS Records |
+    | Manager Stacks           | 3rd DNS Service Provider |
+    |--------------------------|--------------------------|
+    | Custom Resource → Lambda | → API → DNS Records      |
 
     For the details check
     [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm).
@@ -166,7 +166,7 @@ used.
 ### *.sh
 
 These scripts are the high-level wrapper of the `xsh-lib/aws`, with
-them you can deploy clustered stacks in multiple accounts with
+them, you can deploy clustered stacks in multiple accounts with
 one single command.
 
 NOTE: If you are deploying one single stack but the clustered stacks,
@@ -192,7 +192,7 @@ specifying a set of stack names.
 
 The EC2 key pair names in the config files are dynamically resolved during
 the deployment. The deploying region is used as a part of the name to avoid the
-potential naming collision. Therefore the key pairs are automatically
+potential naming collision. Therefore, the key pairs are automatically
 created in AWS and saved to local (~/.ssh) if they don't exist yet.
 
 #### delete.sh
@@ -202,7 +202,7 @@ stack names. Be noted: the key pairs won't be deleted along with the
 stacks.
 
 
-For the detailed usage of theese scripts, see `bash <script>.sh -h`.
+For the detailed usage of these scripts, see `bash <script>.sh -h`.
 
 With them, you can build a set of custom commands to quickly
 deploy your stacks.
@@ -226,7 +226,7 @@ stack with the domain name without any additional setting.
 There are 2 classic deployment methods:
 
 1. Deploy a single stack with everything inside, including
-shadowsocks-manager, Shadosocks node, and L2TPD. This method is not
+shadowsocks-manager, Shadowsocks node, and L2TPD. This method is not
 recommended, the shadowsocks-manager will be unreachable once the
 node's network goes wrong.
 There's a sample config file `sample-00-sandbox.conf` for this.
