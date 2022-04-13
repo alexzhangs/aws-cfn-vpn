@@ -61,7 +61,7 @@ dependencies will be installed automatically except `aws-ec2-ses`.
 ```
 aws-cfn-vpn (github)
 ├── aws-cfn-vpc (github)
-├── aws-cfn-vpc-peer-accepter (github)
+├── aws-cfn-vpc-peer-acceptor (github)
 ├── aws-cfn-vpc-peer-requester (github)
 ├── aws-cfn-config-provider (github)
 ├── aws-cfn-vpn-lexbot (github)
@@ -101,16 +101,16 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     For the details check [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc).
 
-* 1 nested VPC peer accepter stack if set `EnableVpcPeerAccepter=1`.
+* 1 nested VPC peer acceptor stack if set `EnableVpcPeerAcceptor=1`.
 
     It accepts the VPC peer connection request from another VPC. The VPC peer connection is used to create a private network connection between the manager stack and node stack, to protect the multi-user API from opening to the public internet.
 
     For the details check
-    [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter).
+    [aws-cfn-vpc-peer-acceptor](https://github.com/alexzhangs/aws-cfn-vpc-peer-acceptor).
 
 * 1 nested VPC peer requester stack if set `EnableVpcPeerRequester=1`.
 
-    It sends a request to the accepter to create a VPC peer connection.
+    It sends a request to the acceptor to create a VPC peer connection.
 
     For the details check
     [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester).
@@ -338,7 +338,7 @@ In the same directory:
 ```sh
 $ git clone https://github.com/alexzhangs/aws-cfn-vpn
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc
-$ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter
+$ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-acceptor
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
@@ -552,7 +552,7 @@ on, check with the depended repos, here is the quick dial of star
 gates.
 
    1. [aws-cfn-vpc](https://github.com/alexzhangs/aws-cfn-vpc)
-   1. [aws-cfn-vpc-peer-accepter](https://github.com/alexzhangs/aws-cfn-vpc-peer-accepter)
+   1. [aws-cfn-vpc-peer-acceptor](https://github.com/alexzhangs/aws-cfn-vpc-peer-acceptor)
    1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester)
    1. [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider)
    1. [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot)

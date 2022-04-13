@@ -13,11 +13,11 @@
         "TimeoutInMinutes": "2"
       }
     },
-    "VpcPeerAccepterStack": {
+    "VpcPeerAcceptorStack": {
       "Type": "AWS::CloudFormation::Stack",
-      "Condition": "EnableVpcPeerAccepter",
+      "Condition": "EnableVpcPeerAcceptor",
       "Properties": {
-        "TemplateURL": {"Ref": "VpcPeerAccepterStackTemplateURL"},
+        "TemplateURL": {"Ref": "VpcPeerAcceptorStackTemplateURL"},
         "Parameters": {
           "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]}
         },
@@ -33,12 +33,12 @@
           "VpcId": {"Fn::GetAtt": ["VpcStack", "Outputs.Vpc"]},
           "CidrBlock": {"Ref": "VpcCidrBlock"},
           "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]},
-          "PeeringVpcId": {"Ref": "VpcPeerAccepterVpcId"},
-          "PeeringRegion": {"Ref": "VpcPeerAccepterRegion"},
+          "PeeringVpcId": {"Ref": "VpcPeerAcceptorVpcId"},
+          "PeeringRegion": {"Ref": "VpcPeerAcceptorRegion"},
           "PeeringAccountId": {"Ref": "SSMAccountId"},
-          "PeeringRoleArn": {"Ref": "VpcPeerAccepterRoleArn"},
-          "PeeringCidrBlock": {"Ref": "VpcPeerAccepterCidrBlock"},
-          "PeeringSqsQueueUrl": {"Ref": "VpcPeerAccepterSqsQueueUrl"}
+          "PeeringRoleArn": {"Ref": "VpcPeerAcceptorRoleArn"},
+          "PeeringCidrBlock": {"Ref": "VpcPeerAcceptorCidrBlock"},
+          "PeeringSqsQueueUrl": {"Ref": "VpcPeerAcceptorSqsQueueUrl"}
         },
         "TimeoutInMinutes": "5"
       }
@@ -161,7 +161,7 @@
         "ToPort": {"Ref": "SSManagerPort"},
         "CidrIp": {"Fn::If":[
           "EnableVpcPeerRequester",
-          {"Ref": "VpcPeerAccepterCidrBlock"},
+          {"Ref": "VpcPeerAcceptorCidrBlock"},
           {"Ref": "VpcCidrBlock"}
         ]},
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
@@ -883,8 +883,8 @@
     }
   },
   "Conditions": {
-    "EnableVpcPeerAccepter": {
-      "Fn::Equals": [{"Ref": "EnableVpcPeerAccepter"}, "1"]
+    "EnableVpcPeerAcceptor": {
+      "Fn::Equals": [{"Ref": "EnableVpcPeerAcceptor"}, "1"]
     },
     "EnableVpcPeerRequester": {
       "Fn::Equals": [{"Ref": "EnableVpcPeerRequester"}, "1"]
@@ -965,16 +965,16 @@
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
     },
-    "EnableVpcPeerAccepter": {
+    "EnableVpcPeerAcceptor": {
       "Type": "String",
       "Default": "0",
       "AllowedValues": ["0", "1"],
-      "Description": "Whether to create VPC peer accepter resource. 0: no, 1: yes. Default is '0'."
+      "Description": "Whether to create VPC peer acceptor resource. 0: no, 1: yes. Default is '0'."
     },
-    "VpcPeerAccepterStackTemplateURL": {
+    "VpcPeerAcceptorStackTemplateURL": {
       "Type": "String",
       "Default": "",
-      "Description": "VPC peer accepter stack template URL, must be an AWS S3 URL."
+      "Description": "VPC peer acceptor stack template URL, must be an AWS S3 URL."
     },
     "EnableVpcPeerRequester": {
       "Type": "String",
@@ -987,34 +987,34 @@
       "Default": "",
       "Description": "VPC peer requester stack template URL, must be an AWS S3 URL."
     },
-    "VpcPeerAccepterVpcId": {
+    "VpcPeerAcceptorVpcId": {
       "Type": "String",
       "Default": "",
-      "Description": "VPC ID of the VPC peer accepter."
+      "Description": "VPC ID of the VPC peer acceptor."
     },
-    "VpcPeerAccepterRegion": {
+    "VpcPeerAcceptorRegion": {
       "Type": "String",
       "Default": "",
-      "Description": "Region code of the VPC peer accepter."
+      "Description": "Region code of the VPC peer acceptor."
     },
-    "VpcPeerAccepterRoleArn": {
+    "VpcPeerAcceptorRoleArn": {
       "Type": "String",
       "Default": "",
-      "Description": "Amazon Resource Name (ARN) of the VPC peer role of accepter."
+      "Description": "Amazon Resource Name (ARN) of the VPC peer role of acceptor."
     },
-    "VpcPeerAccepterCidrBlock": {
+    "VpcPeerAcceptorCidrBlock": {
       "Type": "String",
       "Default": "10.0.0.0/16",
-      "Description": "CIDR Block of the VPC peer accepter.",
+      "Description": "CIDR Block of the VPC peer acceptor.",
       "MinLength": "9",
       "MaxLength": "18",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
     },
-    "VpcPeerAccepterSqsQueueUrl": {
+    "VpcPeerAcceptorSqsQueueUrl": {
       "Type": "String",
       "Default": "",
-      "Description": "SQS queue URL of the VPC peer accepter."
+      "Description": "SQS queue URL of the VPC peer acceptor."
     },
     "SubnetCidrBlocks": {
       "Type": "CommaDelimitedList",
@@ -1439,16 +1439,16 @@
       "Value": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
     },
     "IamPeerRoleArn": {
-      "Condition": "EnableVpcPeerAccepter",
-      "Value": {"Fn::GetAtt": ["VpcPeerAccepterStack", "Outputs.IamPeerRoleArn"]}
+      "Condition": "EnableVpcPeerAcceptor",
+      "Value": {"Fn::GetAtt": ["VpcPeerAcceptorStack", "Outputs.IamPeerRoleArn"]}
     },
-    "VpcPeerAccepterRegion": {
-      "Condition": "EnableVpcPeerAccepter",
+    "VpcPeerAcceptorRegion": {
+      "Condition": "EnableVpcPeerAcceptor",
       "Value": {"Ref": "AWS::Region"}
     },
-    "VpcPeerAccepterSqsQueueUrl": {
-      "Condition": "EnableVpcPeerAccepter",
-      "Value": {"Fn::GetAtt": ["VpcPeerAccepterStack", "Outputs.SqsPeerRouteQueueUrl"]}
+    "VpcPeerAcceptorSqsQueueUrl": {
+      "Condition": "EnableVpcPeerAcceptor",
+      "Value": {"Fn::GetAtt": ["VpcPeerAcceptorStack", "Outputs.SqsPeerRouteQueueUrl"]}
     },
     "SecurityGroupId": {
       "Value": {"Ref": "VPNServerSG"}

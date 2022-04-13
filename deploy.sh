@@ -68,10 +68,10 @@ set -e -o pipefail
 
 PARAM_MAPPINGS=(
     AccountId:SSMAccountId
-    VpcPeerAccepterRegion:VpcPeerAccepterRegion
-    VpcId:VpcPeerAccepterVpcId
-    VpcPeerAccepterSqsQueueUrl:VpcPeerAccepterSqsQueueUrl
-    IamPeerRoleArn:VpcPeerAccepterRoleArn
+    VpcPeerAcceptorRegion:VpcPeerAcceptorRegion
+    VpcId:VpcPeerAcceptorVpcId
+    VpcPeerAcceptorSqsQueueUrl:VpcPeerAcceptorSqsQueueUrl
+    IamPeerRoleArn:VpcPeerAcceptorRoleArn
     SnsTopicArnForConfig:SnsTopicArn
 )
 
