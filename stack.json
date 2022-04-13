@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "AWS CloudFormation Template to create VPN services, contains 1 EC2 instance, 1 EIP and 1 security group. Also contains a nested template to create VPC reources.",
+  "Description": "AWS CloudFormation Template to create VPN services, contains 1 EC2 instance, 1 EIP and 1 security group. Also contains a nested template to create VPC resources.",
   "Resources": {
     "VpcStack": {
       "Type": "AWS::CloudFormation::Stack",
@@ -897,7 +897,7 @@
         {"Fn::Equals": [{"Ref": "EnableV2ray"}, "1"]},
         {"Condition": "EnableSSN"},
         {"Condition": "SSDomainIsNotNull"},
-        {"Condition": "EnableDnsApi"},
+        {"Condition": "EnableDnsApi"}
       ]
     },
     "EnableSSM": {
