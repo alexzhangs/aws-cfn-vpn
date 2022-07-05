@@ -121,6 +121,7 @@ function update-config () {
     keypair=$(get-keypairname "$file")
     if ! xsh aws/ec2/key/exist -r "$region" "$keypair"; then
         echo "creating EC2 key pair: $keypair ..."
+        mkdir -p ~/.ssh
         xsh aws/ec2/key/create -r "$region" -f ~/.ssh/"$keypair" "$keypair"
     fi
 }
