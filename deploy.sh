@@ -112,9 +112,6 @@ function update-config () {
         done
     fi
 
-    if [[ -z $region ]]; then
-        region=$(aws configure get default.region)
-    fi
     echo "updating OPTIONS: KeyPairName ..."
     xsh /util/sed-inplace "/KeyPairName=/ s|<REGION>|$region|" "$file"
 
@@ -201,6 +198,10 @@ function main () {
     if [[ -z $stacks || -z $confs ]]; then
         usage
         exit 255
+    fi
+
+    if [[ -z $region ]]; then
+        region=$(aws configure get default.region)
     fi
 
     # build stack list
