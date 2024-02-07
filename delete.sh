@@ -73,7 +73,7 @@ function expansion () {
 }
 
 function delete-stack () {
-    declare name=${1:?} profile=$2 region=$3
+    declare name=${1:?} region=${2:?} profile=$3
 
     if [[ -n $profile ]]; then
         xsh aws/cfg/activate "$profile"
@@ -119,6 +119,10 @@ function main () {
         exit 255
     fi
 
+    if [[ -z $region ]]; then
+        region=$(aws configure get default.region)
+    fi
+
     # build stack list
     # shellcheck disable=SC2128
     if [[ $stacks == 00 ]]; then
@@ -133,7 +137,7 @@ function main () {
     declare stack index
     for stack in "${stacks[@]}"; do
         index=$((stack))
-        delete-stack "${names[index]}" "${profiles[index]}" "$region"
+        delete-stack "${names[index]}" "$region" "${profiles[index]}"
     done
 }
 

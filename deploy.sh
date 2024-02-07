@@ -96,7 +96,7 @@ function expansion () {
 }
 
 function update-config () {
-    declare file=${1:?} stack=${2:?} region=$3 json=$4 keypair
+    declare file=${1:?} stack=${2:?} region=${3:?} json=$4 keypair
 
     echo "updating config file: $file ..."
 
@@ -141,23 +141,23 @@ function activate () {
 }
 
 function create-stack () {
-    declare conf=${1:?} region=$2
+    declare conf=${1:?} region=${2:?}
     echo "creating stack with config: $conf ..."
     xsh aws/cfn/deploy -r "$region" -C "$BASE_DIR" -t stack.json -c "$conf"
 }
 
 function update-stack () {
-    declare conf=${1:?} name=${2:?} region=$3
+    declare conf=${1:?} region=${2:?} name=${3:?}
     echo "updating stack $name with config: $conf ..."
     echo yes | xsh aws/cfn/deploy -r "$region" -C "$BASE_DIR" -t stack.json -c "$conf" -s "$name" -D
 }
 
 function deploy-stack () {
-    declare conf=${1:?} name=$2 region=$3
+    declare conf=${1:?} region=${2:?} name=$3
     if [[ -z $name ]]; then
         create-stack "$conf" "$region"
     else
-        update-stack "$conf" "$name" "$region"
+        update-stack "$conf" "$region" "$name"
     fi
 }
 
@@ -221,7 +221,7 @@ function main () {
         update-config "${confs[index]}" "$stack" "$region" "$json"
 
         if [[ $stack -eq 0 ]]; then
-            deploy-stack "${confs[index]}" "${names[index]}" "$region" | tee "$tmpfile"
+            deploy-stack "${confs[index]}" "$region" "${names[index]}" | tee "$tmpfile"
             mgr_stack_name=$(awk -F/ '/"StackId":/ {print $2}' "$tmpfile")
 
             if [[ -n $mgr_stack_name ]]; then
@@ -239,7 +239,7 @@ function main () {
         activate "${profiles[index]}"
 
         if [[ $stack -gt 0 ]]; then
-            deploy-stack "${confs[index]}" "${names[index]}" "$region"
+            deploy-stack "${confs[index]}" "$region" "${names[index]}"
         fi
     done
 }
