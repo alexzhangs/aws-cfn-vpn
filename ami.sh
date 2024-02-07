@@ -108,7 +108,8 @@ function regions () {
     #?
     aws ec2 describe-regions \
         --query 'Regions[*].[RegionName]' \
-        --output text
+        --output text \
+        | sort
 }
 
 function AMIs () {
