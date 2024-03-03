@@ -567,7 +567,7 @@
           }
         },
         "Handler": "LambdaSsmApi.lambda_handler",
-        "Runtime": "python3.7",
+        "Runtime": "python3.12",
         "Timeout": "120",
         "Role": {"Fn::GetAtt": ["LambdaSsmApiExecutionRole", "Arn"]}
       }
@@ -636,7 +636,7 @@
           }
         },
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
-        "Runtime": "python3.7",
+        "Runtime": "python3.12",
         "Timeout": "180",
         "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
       }
@@ -749,7 +749,7 @@
           }
         },
         "Handler": "SsnLambdaSnsTopicSubscriber.lambda_handler",
-        "Runtime": "python3.7",
+        "Runtime": "python3.12",
         "Timeout": "30",
         "Role": {"Fn::GetAtt": ["SsnLambdaSnsTopicSubscriberExecutionRole", "Arn"]}
       }
@@ -862,7 +862,7 @@
           }
         },
         "Handler": "LambdaLexBot.lambda_handler",
-        "Runtime": "python3.7",
+        "Runtime": "python3.12",
         "Timeout": "10",
         "Role": {"Fn::GetAtt": ["LambdaLexBotExecutionRole", "Arn"]}
       }
