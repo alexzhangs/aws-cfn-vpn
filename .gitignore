@@ -1,2 +1,4 @@
 *.zip
+!LambdaLayer*.zip
 .idea
+python/
