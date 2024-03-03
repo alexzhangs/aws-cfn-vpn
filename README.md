@@ -69,6 +69,11 @@ aws-cfn-vpn (github)
 ├── aws-ec2-shadowsocks-libev (github)
 │   └── shadowsocks-libev (yum)
 │       └── v2ray-plugin (github)
+|-- acme.sh (github)
+|-- xsh (github)
+|-- xsh-lib/core (github)
+|-- xsh-lib/aws (github)
+|-- xsh-lib/shadowsocks (github)
 ├── shadowsocks-manager (github)
 │   ├── django (pip)
 │   └── [aws-ec2-ses (github)] - Manually setup involved
@@ -92,6 +97,7 @@ following resources:
 * 1 EC2 Instance.
     * Shadowsocks-libev is installed if set `EnableSSN=1`.
     * shadowsocks-manager is installed if set `EnableSSM=1`.
+    * v2ray-plugin is installed if set `EnableV2ray=1`.
     * L2TPD is installed if set `EnableL2TP=1`.
 
     For the input parameters and the detail of the template, please check the template
@@ -158,87 +164,30 @@ used.
 
 ### sample-*.conf
 
-`sample-*.conf` are config files used by `deploy.sh` to automate AWS CloudFormation template deployment.
+`sample-*.conf` are config files used by `aws/cfn/vpn/deploy` to automate AWS CloudFormation template deployment.
 
-> `xsh-lib/aws/cfn/deploy` is used by `deploy.sh` and can be installed from repo
-[xsh-lib/aws](https://github.com/xsh-lib/aws).
+> `aws/cfn/vpn/deploy` can be installed from repo [xsh-lib/aws](https://github.com/xsh-lib/aws).
 
-### *.sh
+## Classic Deployment Scenarios
 
-These scripts are the high-level wrapper of the `xsh-lib/aws`, with
-them, you can deploy clustered stacks in multiple accounts with
-one single command.
-
-NOTE: If you are deploying one single stack but the clustered stacks,
-don't use these scripts. Simply pick up the config file
-`sample-00-sandbox.conf` and use `deploy.sh` to deploy it.
-
-#### ami.sh
-
-The`ami.sh` is used to get the latest AMIs for all enabled regions.
-With the `-t TEMPLATE` option, it will update the TEMPLATE file with
-the new mapping on the key `Mappings`.
-
-#### config.sh
-
-The `config.sh` is used to generate a set of config files (like
-sample-*.conf) which can be used by `deploy.sh` directly.
-
-#### deploy.sh
-
-The `deploy.sh` is used to deploy the clustered stacks from a set of
-config files. Updating existing stacks is supported by additionally
-specifying a set of stack names.
-
-The EC2 key pair names in the config files are dynamically resolved during
-the deployment. The deploying region is used as a part of the name to avoid the
-potential naming collision. Therefore, the key pairs are automatically
-created in AWS and saved to local (~/.ssh) if they don't exist yet.
-
-#### delete.sh
-
-The `delete.sh` is used to delete the clustered stacks from a set of
-stack names. Be noted: the key pairs won't be deleted along with the
-stacks.
-
-
-For the detailed usage of these scripts, see `bash <script>.sh -h`.
-
-With them, you can build a set of custom commands to quickly
-deploy your stacks.
-
-```bash
-declare name=vpn env=prod region=eu-west-2
-bash ami.sh -t stack.json
-bash delete.sh -r "$region" -x 0-4 -p $name-{0..4} -d $name-{0..4}-$env
-bash config.sh -x 0-4 -n "$name" -e "$env" -S -d EXAMPLE.COM -N name.com -u YOUR_DNS_API_USER -p YOUR_DNS_API_TOKEN
-bash deploy.sh -r "$region" -x 0-4 -p $name-{0..4} -c $name-{0..4}-$env.conf
-bash deploy.sh -r "$region" -x 0-4 -p $name-{0..4} -c $name-{0..4}-$env.conf -u $name-{0..4}-$env
-```
-
-With the command set above, you will get 1 manager stack with the
-L2TPD enabled, and 4 Shadowsocks node stacks with traffic balanced by
-DNS. It takes around 1 hour. You will be able to log in to your manager
-stack with the domain name without any additional setting. 
-
-## Classic Usage
-
-There are 2 classic deployment methods:
+There are 2 classic deployment scenarios:
 
 1. Deploy a single stack with everything inside, including
 shadowsocks-manager, Shadowsocks node, and L2TPD. This method is not
 recommended, the shadowsocks-manager will be unreachable once the
 node's network goes wrong.
-There's a sample config file `sample-00-sandbox.conf` for this.
+There's 1 sample config file for this.
+
+    * sample-00-sb.conf
 
 1. Deploy at least 2 stacks, one for shadowsocks-manager and L2TPD,
 one or more for Shadowsocks nodes. Each one needs to be deployed in a
 different AWS account. That allows you to balance network traffic between AWS accounts.
 There are 3 sample config files for this.
 
-    * sample-0-sandbox.conf
-    * sample-1-sandbox.conf
-    * sample-2-sandbox.conf
+    * sample-0-sb.conf
+    * sample-1-sb.conf
+    * sample-2-sb.conf
 
 ## Domain Name Design
 
@@ -251,11 +200,12 @@ as `admin.ss.yourdomain.com`.
 `vpn.yourdomain.com`.
 
 1. The domain name pointing to Shadowsocks nodes, such as
-`ss.yourdomain.com`.
-
-If you are deploying a single stack with everything inside, then one domain hostname will work out.
+`ss.yourdomain.com`, or `v2ray.ss.yourdomain.com` for v2ray plugin enabled nodes.
 
 ## Deploy
+
+The sample deployment is deploying 3 stacks, one for shadowsocks-manager and L2TPD, two for
+Shadowsocks nodes.
 
 ### Prepare at local
 
@@ -280,7 +230,7 @@ them ready.
 
 Note: If you are proceeding without the tools, then you will have to manually
 edit config files and upload templates and Lambda functions to S3, and handle
-the parameters for each nested template.
+the parameters for each nested template, which is most people want to avoid.
 
 ### Prepare AWS Accounts
 
@@ -300,11 +250,12 @@ the parameters for each nested template.
 
     Otherwise, just use the AWS web console.
 
-    NOTE: You must create an IAM user or role to deploy the
-    stacks, you can not use AWS `root user` or its access key to do the
-    deployment. Because there is IAM assume role inside the template,
-    which assumes an action `ec2:AcceptVpcPeeringConnection` and AWS
-    restricts it's can't be assumed by the root user.
+    NOTE: You must create an [AWS IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html)
+    or role to deploy the stacks, you can not use
+    [AWS root user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html)
+    or its access key to do the deployment. Because there is IAM assume role inside the template,
+    which assumes an action `ec2:AcceptVpcPeeringConnection` and AWS restricts it's can't be assumed
+    by the root user.
 
 1. Create an access key for each IAM user created in the last step.
 
@@ -320,16 +271,16 @@ the parameters for each nested template.
 1. Create a profile for each access key created in the last step.
 
     Following commands will create three profiles with names:
-    `profile-0`, `profile-1`, and `profile-2` which will be used in
+    `vpn-0`, `vpn-1`, and `vpn-2` which will be used in
     the rest of this document.
 
     A region is needed to be set in this step.
 
-   ```sh
-   $ aws configure --profile=profile-0
-   $ aws configure --profile=profile-1
-   $ aws configure --profile=profile-2
-   ```
+    ```sh
+    $ aws configure --profile=vpn-0
+    $ aws configure --profile=vpn-1
+    $ aws configure --profile=vpn-2
+    ```
 
 ### Get the code
 
@@ -345,96 +296,73 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 $ git clone https://github.com/alexzhangs/aws-cfn-acm
 ```
 
-### Create the aws-cfn-vpn config files
-
-The config files are needed by `aws-cfn-vpn` to deploy the
-CloudFormation stacks. Review the options listed below and choose one from
-them:
-
-1. Basic: Create three config files, one is for the
-    manager stack, the other two are for the node stacks.
-
-    ```bash
-    $ bash aws-cfn-vpn/config.sh -x 0-2
-    ```
-
-1. Classic: Use domain and enable HTTPS.
-    Add the domain `example.com` to your vpn services, such as the
-    admin web console, the l2tp service, and the Shadowsocks service.
-    HTTPS will be enabled for the admin web console.
-
-    ```bash
-    $ bash aws-cfn-vpn/config.sh -x 0-2 -d EXAMPLE.COM
-    ```
-
-1. Advanced: Enable DNS service API with additional settings(only `name.com` for now):
-
-    ```bash
-    $ bash aws-cfn-vpn/config.sh -x 0-2 -d EXAMPLE.COM -N name.com -u DomainNameServerUsername -p DomainNameServerCredential
-    ```
-
-    With DNS service API enabled, DNS records can be automatically
-    maintained, and therefore the ACM certificates provisioning can be
-    fully automated.
-
-    `DomainNameServerUsername` and `DomainNameServerCredential` are
-    generated at your
-    [name.com API settings](https://www.name.com/account/settings/api).
-
-1. Or see the help and figure it out yourself:
-
-    ```bash
-    $ bash aws-cfn-vpn/config.sh -h
-    ```
-
-After the command is completed, following config files should be
-created:
-
-```sh
-$ ls -1 aws-cfn-vpn/vpn-*.conf
-aws-cfn-vpn/vpn-0-sample.conf
-aws-cfn-vpn/vpn-1-sample.conf
-aws-cfn-vpn/vpn-2-sample.conf
-```
-
-#### v2ray-plugin
-
-[V2ray-plugin](https://github.com/shadowsocks/v2ray-plugin) TLS mode for Shadowsocks server is supported.
-
-This feature is experimental and is disabled by default. It requires several options to be set properly:
-
-```ini
-"EnableV2ray=1"
-"SSDomain=<v2ray.ss.yourdomain.com>"
-"DomainNameServer=name.com"
-"DomainNameServerUsername=<YourDomainNameServerUsername>"
-"DomainNameServerCredential=<YourDomainNameServerCredential>"
-```
-
-[acme.sh](https://github.com/acmesh-official/acme.sh) is internally used to provision TLS certificate automatically.
-
-> NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
-
 ### Create the manager stack and the node stacks
 
-The following command will create three CloudFormation stacks by using
-the three AWS CLI profiles and the three config files created in the
-earlier steps.
+#### Simplest Way
+
+The simplest way to create the stacks is to use the high-level wrapper command `aws/cfn/vpn/cluster` provided by the `xsh-lib/aws` library.
 
 ```bash
-$ bash aws-cfn-vpn/deploy.sh -x 0-2 -p profile-{0..2} -c aws-cfn-vpn/vpn-{0..2}-sample.conf
+# Set the environment variables
+XSH_AWS_CFN_VPN_ENV=sb  # sb stands for sandbox
+XSH_AWS_CFN_VPN_DOMAIN=Example.com  # replace with your domain
+XSH_AWS_CFN_VPN_DNS=name.com
+XSH_AWS_CFN_VPN_DNS_USERNAME=DomainNameServerUsername  # replace with your name.com API username
+XSH_AWS_CFN_VPN_DNS_CREDENTIAL=DomainNameServerCredential  # replace with your name.com API credential
+#XSH_AWS_CFN_VPN_PLUGINS=v2ray  # uncomment this if want to enable v2ray-plugin
+
+# Create the config files and deploy the stacks at once
+xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
 ```
 
-If HTTPS is enabled, but the DNS service API is not, you need to
+The options listed above is the best practice for the deployment. It minimizes the manual work and the risk of errors, also provides the best security.
+
+However, it requires you own a domain in [name.com](https://name.com) and have the name.com API enabled.
+
+`DomainNameServerUsername` and `DomainNameServerCredential` are the API credentials of name.com. They are used to create and update the DNS records for the domains of the web console, L2TP, and Shadowsocks nodes. The TLS certificate (for web console) provision process also depends on it to be fully automated.
+
+The API credentials can be generated at your
+[name.com API settings](https://www.name.com/account/settings/api).
+
+The command takes around 30 minutes to complete. If everything goes smoothly, you will get 1 manager stack with the L2TPD enabled, and 2 Shadowsocks node stacks with traffic balanced by DNS. You will be able to log in to your manager stack web console with the domain name without any additional setting. 
+
+3 config files are created in the directory `aws-cfn-vpn` along with the deployment:
+
+* vpn-0-sb.conf
+* vpn-1-sb.conf
+* vpn-2-sb.conf
+
+#### The Way without API Credentials
+
+```bash
+# Set the environment variables
+XSH_AWS_CFN_VPN_ENV=sb  # sb stands for sandbox
+XSH_AWS_CFN_VPN_DOMAIN=Example.com  # replace with your domain
+
+# Create the config files and deploy the stacks at once
+xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
+```
+
+If the domain is enabled without API credentials, you need to
 manually create a DNS record to validate the newly created ACM
 certificate. Visit
 [AWS ACM service](https://console.aws.amazon.com/acm)
-console to obtain the DNS record info. Once the ACM certificate is
-validated successfully, the creation will proceed.
+console for the manager stack AWS account, to obtain the DNS record info. Once the ACM certificate is validated successfully, the creation will proceed.
 
-The command takes around 30 minutes to complete. If everything
-goes smoothly, the three stacks and all services should be ready after
-the command is completed. You can move to the next section.
+#### The Way without Domain
+
+```bash
+# Set the environment variables
+XSH_AWS_CFN_VPN_ENV=sb  # sb stands for sandbox
+
+# Create the config files and deploy the stacks at once
+xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
+
+# See the help document of the command for the details
+xsh help aws/cfn/vpn/cluster
+```
+
+If the domain is not enabled at all, the manager stack web console is not HTTPS secured. Therefore, the user and password of web console are sent in plain text. The L2TPD service and the Shadowsocks nodes are not accessible with a domain name, only with the public IP of the EC2 instance.
 
 ### Verify the manager stack deployment.
 
@@ -444,7 +372,7 @@ Or visit `https://admin.ss.yourdomain.com/admin`. Note that you
 must use the HTTPS protocol with using the domain, the HTTP protocol
 won't work with it.
 
-Log in with the default username and password:
+Log in with the default username and password defined within `vpn-0-sb.conf`:
 
 ```ini
 "SSMAdminUsername=admin"
@@ -475,7 +403,7 @@ the public IP of EC2 Instance of node stack.
 
 ## Configure shadowsocks-manager
 
-1. Log in to the shadowsocks-manager web console back at
+1. Log in to the shadowsocks-manager web console at
 `https://admin.ss.yourdomain.com/admin` after the DNS records get
 effective.
 
@@ -484,7 +412,7 @@ list, all node stacks you created should have been registered as nodes
 automatically.
 
     Note: The registration relies on the AWS Config, SNS, and Lambda services,
-it takes up to around 15 minutes to capture and deliver the config changes.
+it takes up to around 5 minutes to capture and deliver the config changes.
 
 1. Now you are ready to create Shadowsocks accounts on the web
    console, or import the previously exported accounts back.
@@ -500,12 +428,50 @@ Interface: VPN
 VPN Type: L2TP over IPSec
 ```
 
-The default credential defined in the conf file is:
+The default credential defined within `vpn-0-sb.conf` is:
 
 ```ini
 "L2TPUsername=vpnuser"
 "L2TPPassword=passw0rd"
 "L2TPSharedKey=SharedSecret"
+```
+
+## v2ray-plugin
+
+[V2ray-plugin](https://github.com/shadowsocks/v2ray-plugin) is optionally supported for the Shadowsocks nodes in Websocket (HTTPS) mode.
+
+This feature is experimental and is disabled by default. It requires several options to be set properly in the node stack config file.
+
+```ini
+"EnableV2ray=1"
+"SSDomain=<v2ray.ss.yourdomain.com>"
+"DomainNameServer=name.com"
+"DomainNameServerUsername=<YourDomainNameServerUsername>"
+"DomainNameServerCredential=<YourDomainNameServerCredential>"
+```
+
+Use below command to deploy v2ray-plugin enabled nodes:
+
+```bash
+XSH_AWS_CFN_VPN_PLUGINS=v2ray xsh aws/cfn/vpn/cluster -x {0..2} -c vpn -C aws-cfn-vpn
+```
+
+[acme.sh](https://github.com/acmesh-official/acme.sh) is internally used to provision additional TLS certificate for v2ray-plugin automatically. This certificate is used for the domain `v2ray.ss.yourdomain.com`. 
+
+> NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
+
+## Customize the Deployment
+
+The deployment can be customized by editing the config files, or their templates at `aws-cfn-vpn/config-templates` before to generate config files.
+
+Also the deployment can be customized by using the low-level wrapper command `aws/cfn/vpn/config` and `aws/cfn/vpn/deploy` provided by the `xsh-lib/aws` library.
+
+See help document of the commands for the details.
+
+```bash
+xsh list aws/cfn/vpn
+xsh help aws/cfn/vpn/config
+xsh help aws/cfn/vpn/deploy
 ```
 
 ## Tips
@@ -532,7 +498,7 @@ level.
     HTTPS will be enabled by default if you specify a domain for the
     template parameter `SSMDomain`.
 
-    The SSL certificate is issued for the domain `SSMDomain` with AWS
+    The TLS certificate is issued for the domain `SSMDomain` with AWS
     ACM service, the service is free, there's no charge for the certificates.
 
 ## TODO
