@@ -430,7 +430,7 @@
                 "export HOME=~\n",
 
                 {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
-                  "private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
+                  "declare private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
                   "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
 
                   "bash aws-ec2-shadowsocks-libev/install.sh",
@@ -446,21 +446,28 @@
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableV2ray", {"Fn::Join": ["", [
-                  "email='acme@", {"Ref":  "SSDomain"}, "'\n",
-                  "certfile=~/.shadowsocks/'", {"Ref": "SSDomain"}, "'.cer\n",
-                  "keyfile=~/.shadowsocks/'", {"Ref": "SSDomain"}, "'.key\n",
+                  "declare ss_domain=", {"Ref":  "SSDomain"}, "\n",
+                  "declare acme_email=acme@$ss_domain\n",
+                  "declare acme_certfile=~/.shadowsocks/$ss_domain.cer\n",
+                  "declare acme_keyfile=~/.shadowsocks/$ss_domain.key\n",
 
-                  "curl -s https://get.acme.sh | bash -s email=\"$email\" && . ~/.bashrc\n",
+                  "curl -s https://get.acme.sh | bash -s email=\"$acme_email\" && . ~/.bashrc\n",
 
-                  "Namecom_Username='", {"Ref": "DomainNameServerUsername"}, "'",
-                  " Namecom_Token='", {"Ref": "DomainNameServerCredential"}, "'",
-                  " ~/.acme.sh/acme.sh --issue --dns dns_namecom",
-                  " -d '", {"Ref": "SSDomain"}, "'\n",
+                  "declare shadowsocks_reload_command='service shadowsocks-libev-manager restart'\n",
+                  
+                  "declare acme_install_cert_command=( /root/.acme.sh/acme.sh --install-cert",
+                  " --domain \"$ss_domain\" --ecc",
+                  " --fullchain-file \"$acme_certfile\" --key-file \"$acme_keyfile\" )\n",
 
-                  "~/.acme.sh/acme.sh --install-cert",
-                  " -d '", {"Ref": "SSDomain"}, "'",
-                  " --fullchain-file \"$certfile\"",
-                  " --key-file \"$keyfile\"\n",
+                  "declare acme_renew_hook_command=\"${acme_install_cert_command[*]} --reloadcmd '$shadowsocks_reload_command'\"\n",
+
+                  "export Namecom_Username='", {"Ref": "DomainNameServerUsername"}, "'\n",
+                  "export Namecom_Token='", {"Ref": "DomainNameServerCredential"}, "'\n",
+
+                  "# issue the certificate\n",
+                  "/root/.acme.sh/acme.sh --issue --dns dns_namecom",
+                  " --domain \"$ss_domain\"",
+                  " --renew-hook \"$acme_renew_hook_command\"\n",
 
                   "curl -s -O https://dl.google.com/go/go1.16.10.linux-amd64.tar.gz\n",
                   "tar -C /usr/local -xvzf  go1.16.10.linux-amd64.tar.gz\n",
@@ -475,12 +482,13 @@
                   "xsh ss/libev/plugin/v2ray/install\n",
 
                   "xsh ss/libev/plugin/v2ray/config",
-                  " -n '", {"Ref": "SSDomain"}, "'",
-                  " -c \"$certfile\"",
-                  " -k \"$keyfile\"",
+                  " -n \"$ss_domain\"",
+                  " -c \"$acme_certfile\"",
+                  " -k \"$acme_keyfile\"",
                   " -w\n",
 
-                  "service shadowsocks-libev-manager restart\n"
+                  "# install the certificate\n",
+                  "${acme_install_cert_command[@]} --reloadcmd \"$shadowsocks_reload_command\"\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
