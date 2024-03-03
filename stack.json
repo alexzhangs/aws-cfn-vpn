@@ -82,7 +82,8 @@
           "Domain": {"Ref": "SSMDomain"},
           "DomainNameServer": {"Ref": "DomainNameServer"},
           "DomainNameServerUsername": {"Ref": "DomainNameServerUsername"},
-          "DomainNameServerCredential": {"Ref": "DomainNameServerCredential"}
+          "DomainNameServerCredential": {"Ref": "DomainNameServerCredential"},
+          "LambdaLayerRequestsArn": {"Ref": "LambdaLayerRequests"}
         },
         "TimeoutInMinutes": "3"
       }
@@ -569,7 +570,8 @@
         "Handler": "LambdaSsmApi.lambda_handler",
         "Runtime": "python3.12",
         "Timeout": "120",
-        "Role": {"Fn::GetAtt": ["LambdaSsmApiExecutionRole", "Arn"]}
+        "Role": {"Fn::GetAtt": ["LambdaSsmApiExecutionRole", "Arn"]},
+        "Layers": [{"Ref": "LambdaLayerRequests"}]
       }
     },
     "LambdaSsmApiInvokePermission": {
@@ -580,6 +582,20 @@
         "Action": "lambda:InvokeFunction",
         "Principal": "lambda.amazonaws.com",
         "SourceAccount": {"Ref": "AWS::AccountId"}
+      }
+    },
+    "LambdaLayerRequests": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "LayerName": "LambdaLayerRequests",
+        "Description": "The Lambda layer: requests.",
+        "Content": {
+          "S3Bucket": {"Ref": "S3BucketForLambdaLayerRequests"},
+          "S3Key": {"Ref": "S3KeyForLambdaLayerRequests"}
+        },
+        "CompatibleRuntimes": ["python3.12"],
+        "CompatibleArchitectures": ["x86_64", "arm64"]
       }
     },
     "LambdaSnsTopicSubscriberExecutionRole": {
@@ -1293,6 +1309,16 @@
       "Type": "String",
       "Default": "",
       "Description": "S3 key for LambdaSsmApi."
+    },
+    "S3BucketForLambdaLayerRequests": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 bucket name for LambdaLayerRequests."
+    },
+    "S3KeyForLambdaLayerRequests": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 key for LambdaLayerRequests."
     }
   },
   "Mappings": {

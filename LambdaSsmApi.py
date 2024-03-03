@@ -26,7 +26,9 @@ obj = response['Payload']
 import json
 import os
 import boto3
-import botocore.vendored.requests as requests
+# Lambda (since python3.8) does not have the `requests` module, so it needs to be included
+#  in the deployment package or the Lambda layer
+import requests
 
 print('Loading function')
 
