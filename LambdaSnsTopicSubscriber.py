@@ -108,19 +108,25 @@ def delete_record(domain):
 
 
 def create_node(name, domain, **kwargs):
+    # lookup existing nodes with the same name
     nodes = call_ssm(action='list', model='Node', filter=dict(name=name))
     if nodes:
+        # use existing node
         node = nodes[0]
         node.update(kwargs)
     else:
-        root = get_root_from_domain(domain)
-        host = get_host_from_domain(domain)
-        records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
-        if records:
-            node = dict(name=name, record=records[0]['id'], **kwargs)
-        else:
-            print('not found the instance of Record: {} for creating the node: {}'.format(domain, name))
-            return
+        # create new node
+        node = dict(name=name, **kwargs)
+
+    # lookup existing DNS records which must exist
+    root = get_root_from_domain(domain)
+    host = get_host_from_domain(domain)
+    records = call_ssm(action='list', model='Record', filter=dict(host=host, domain__name=root))
+    if records:
+        node['record'] = records[0]['id']
+    else:
+        print('not found the instance of Record: {} for creating the node: {}'.format(domain, name))
+        return
     return call_ssm(action='save', model='Node', data=node)
 
 
