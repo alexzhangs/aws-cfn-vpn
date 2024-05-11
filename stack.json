@@ -650,7 +650,7 @@
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
         "Runtime": "python3.12",
         "Timeout": "180",
-        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
+        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]},
         "Layers": [{"Ref": "LambdaLayerTldExtract"}]
       }
     },
