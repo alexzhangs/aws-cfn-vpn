@@ -66,15 +66,11 @@ aws-cfn-vpn (github)
 ├── aws-cfn-config-provider (github)
 ├── aws-cfn-vpn-lexbot (github)
 ├── aws-cfn-acm (github)
-├── aws-ec2-shadowsocks-libev (github)
-│   └── shadowsocks-libev (yum)
-│       └── v2ray-plugin (github)
-|-- acme.sh (github)
-|-- xsh (github)
-|-- xsh-lib/core (github)
-|-- xsh-lib/aws (github)
-|-- xsh-lib/shadowsocks (github)
-├── shadowsocks-manager (github)
+├── shadowsocks-libev-v2ray (dockerhub)
+│   ├── shadowsocks-libev (dockerhub)
+│   ├── v2ray-plugin (github)
+|   └── acme.sh (github)
+├── shadowsocks-manager (dockerhub)
 │   ├── django (pip)
 │   └── [aws-ec2-ses (github)] - Manually setup involved
 ├── aws-ec2-xl2tpd (github)
@@ -458,6 +454,13 @@ XSH_AWS_CFN_VPN_PLUGINS=v2ray xsh aws/cfn/vpn/cluster -x {0..2} -c vpn -C aws-cf
 
 [acme.sh](https://github.com/acmesh-official/acme.sh) is internally used to provision additional TLS certificate for v2ray-plugin automatically. This certificate is used for the domain `v2ray.ss.yourdomain.com`. 
 
+The corresponding client settings are:
+
+```ini
+plugin: v2ray-plugin
+plugin_opts: tls;host=v2ray.ss.yourdomain.com
+```
+
 > NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
 
 ## Customize the Deployment
@@ -523,7 +526,8 @@ gates.
    1. [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider)
    1. [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot)
    1. [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm)
-   1. [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
+   1. ~~[aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)~~
+   1. [shadowsocks-libev-v2ray](https://github.com/alexzhangs/shadowsocks-libev-v2ray)
    1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
    1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses)
    1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd)
