@@ -504,6 +504,51 @@ level.
     The TLS certificate is issued for the domain `SSMDomain` with AWS
     ACM service, the service is free, there's no charge for the certificates.
 
+## Development
+
+### Re-generate the sample config files
+
+```bash
+# Unset the environment variables if they are set, otherwise the command will use the values in the environment.
+unset XSH_AWS_CFN_VPN_ENV \
+    XSH_AWS_CFN_VPN_DOMAIN \
+    XSH_AWS_CFN_VPN_DNS \
+    XSH_AWS_CFN_VPN_DNS_USERNAME \
+    XSH_AWS_CFN_VPN_DNS_CREDENTIAL \
+    XSH_AWS_CFN_VPN_PLUGINS
+
+# Generate the sample config file(s): sample-00-sb.conf
+xsh aws/cfn/vpn/config -x 00 -p vpn-0 -b sample -e sb
+
+# Generate the sample config file(s): sample-0-sb.conf, sample-1-sb.conf, sample-2-sb.conf
+xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
+```
+
+### Create the Lambda Layer Packages
+
+1. requests
+
+    ```bash
+    cd lambdas/layers
+    mkdir -p python
+    pip install requests -t python
+    zip -r9 LambdaLayerRequests.zip python
+    rm -rf python
+    ```
+1. tldextract
+
+    ```bash
+    cd lambdas/layers
+    mkdir -p python
+    pip install tldextract -t python
+    zip -r9 LambdaLayerTldExtract.zip python
+    rm -rf python
+    ```
+
+* https://www.keyq.cloud/en/blog/creating-an-aws-lambda-layer-for-python-requests-module
+* https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/
+
+
 ## TODO
 
 * Add a default Shadowsocks user like the default user for L2TPD.
