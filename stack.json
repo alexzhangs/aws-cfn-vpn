@@ -348,8 +348,6 @@
                 "\"interface\":\"", {"Ref": "SSManagerInterface"},
                 "\",\"port\":\"", {"Ref": "SSManagerPort"},
                 "\",\"encrypt\":\"", {"Ref": "SSEncrypt"},
-                "\",\"timeout\":\"", {"Ref": "SSTimeout"},
-                "\",\"fastopen\":\"", {"Ref": "SSFastopen"},
                 "\",\"server_edition\":\"", 1,
                 "\",\"is_v2ray_enabled\":\"", {"Ref": "EnableV2ray"},
                 "\"}"
@@ -423,83 +421,73 @@
                 "#         --configsets InstallAndRun ",
                 "#         --region ", {"Ref": "AWS::Region"}, "\n",
 
+                "# enable linux swap file\n",
+                "dd if=/dev/zero of=/var/swap.1 bs=1M count=2048\n",
+                "chmod 600 /var/swap.1\n",
+                "mkswap /var/swap.1\n",
+                "swapon /var/swap.1\n",
+                "echo '/var/swap.1 swap swap defaults 0 0' >> /etc/fstab\n",
+
                 "yum update -y\n",
 
                 "yum install -y git\n",
                 "export PATH=/usr/local/bin:$PATH\n",
                 "export HOME=~\n",
 
+                "amazon-linux-extras install -y docker\n",
+                "systemctl start docker\n",
+                "systemctl enable docker\n",
+
                 {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
                   "declare private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
-                  "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-shadowsocks-libev\n",
 
-                  "bash aws-ec2-shadowsocks-libev/install.sh",
-                  " -m '", {"Ref": "SSEncrypt"}, "'",
-                  " -t '", {"Ref": "SSTimeout"}, "'",
-                  " -f '", {"Ref": "SSFastopen"}, "'",
-                  " -s \"", {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
-                                       {"Fn::If": ["SSMIFPrivate", "$private_ip",
-                                                   {"Fn::If": ["SSMIFPublic", "0.0.0.0", ""]}
-                                                  ]}
-                                       ]}, "\"",
-                  " -p '", {"Ref": "SSManagerPort"}, "'\n"
-                ]]}, ""]},
+                  "declare ssm_interface_ip=", 
+                    {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
+                      {"Fn::If": ["SSMIFPrivate", "$private_ip",
+                        {"Fn::If": ["SSMIFPublic", "0.0.0.0", ""]}
+                      ]}
+                    ]}, "\n",
 
-                {"Fn::If": ["EnableV2ray", {"Fn::Join": ["", [
-                  "declare ss_domain=", {"Ref":  "SSDomain"}, "\n",
-                  "declare acme_email=acme@$ss_domain\n",
-                  "declare acme_certfile=~/.shadowsocks/$ss_domain.cer\n",
-                  "declare acme_keyfile=~/.shadowsocks/$ss_domain.key\n",
+                  "declare ssm_port=", {"Ref": "SSManagerPort"}, "\n",
+                  "declare ss_ports=", {"Ref": "SSPortBegin"}, "-", {"Ref": "SSPortEnd"}, "\n",
+                  "declare ss_encrypt=", {"Ref": "SSEncrypt"}, "\n",
+                  "declare ss_timeout=", {"Ref": "SSTimeout"}, "\n",
 
-                  "curl -s https://get.acme.sh | bash -s email=\"$acme_email\" && . ~/.bashrc\n",
+                  "declare -a run_env_opts\n",
+                  "declare -a run_port_opts\n",
+                  "declare -a run_cmd_opts\n",
 
-                  "declare shadowsocks_reload_command='service shadowsocks-libev-manager restart'\n",
-                  
-                  "declare acme_install_cert_command=( /root/.acme.sh/acme.sh --install-cert",
-                  " --domain \"$ss_domain\" --ecc",
-                  " --fullchain-file \"$acme_certfile\" --key-file \"$acme_keyfile\" )\n",
+                  "run_port_opts+=(-p $ssm_interface_ip:$ssm_port:$ssm_port/UDP)\n",
+                  "run_port_opts+=(-p $ss_ports:$ss_ports/UDP)\n",
+                  "run_port_opts+=(-p $ss_ports:$ss_ports)\n",
 
-                  "declare acme_renew_hook_command=\"${acme_install_cert_command[*]} --reloadcmd '$shadowsocks_reload_command'\"\n",
+                  "run_cmd_opts+=(--manager-address 0.0.0.0:$ssm_port)\n",
+                  "run_cmd_opts+=(--executable /usr/local/bin/ss-server)\n",
+                  "run_cmd_opts+=(-m $ss_encrypt -s 0.0.0.0 -t $ss_timeout -u)\n",
 
-                  "export Namecom_Username='", {"Ref": "DomainNameServerUsername"}, "'\n",
-                  "export Namecom_Token='", {"Ref": "DomainNameServerCredential"}, "'\n",
+                  {"Fn::If": ["EnableV2ray", {"Fn::Join": ["", [
+                    "declare ss_domain=", {"Ref":  "SSDomain"}, "\n",
+                    "declare dns_username=", {"Ref": "DomainNameServerUsername"}, "\n",
+                    "declare dns_credential=", {"Ref": "DomainNameServerCredential"}, "\n",
+                    "declare dns_env=Namecom_Username=$dns_username,Namecom_Token=$dns_credential\n",
 
-                  "# issue the certificate\n",
-                  "/root/.acme.sh/acme.sh --issue --dns dns_namecom",
-                  " --domain \"$ss_domain\"",
-                  " --renew-hook \"$acme_renew_hook_command\"\n",
+                    "run_env_opts+=(-e V2RAY=1 -e DOMAIN=$ss_domain -e DNS=dns_namecom -e DNS_ENV=$dns_env)\n",
+                    "run_cmd_opts+=(--plugin v2ray-plugin --plugin-opts \"server;tls;host=$ss_domain\")\n"
+                  ]]}, ""]},
 
-                  "curl -s -O https://dl.google.com/go/go1.16.10.linux-amd64.tar.gz\n",
-                  "tar -C /usr/local -xvzf  go1.16.10.linux-amd64.tar.gz\n",
-                  "export GOPATH=/usr/local/go\n",
-                  "export PATH=$GOPATH/bin:$PATH\n",
-
-                  "curl -s https://raw.githubusercontent.com/alexzhangs/xsh/master/boot | bash && . ~/.xshrc\n",
-                  "xsh load xsh-lib/core\n",
-                  "xsh load xsh-lib/aws\n",
-                  "xsh load xsh-lib/shadowsocks\n",
-
-                  "xsh ss/libev/plugin/v2ray/install\n",
-
-                  "xsh ss/libev/plugin/v2ray/config",
-                  " -n \"$ss_domain\"",
-                  " -c \"$acme_certfile\"",
-                  " -k \"$acme_keyfile\"",
-                  " -w\n",
-
-                  "# install the certificate\n",
-                  "${acme_install_cert_command[@]} --reloadcmd \"$shadowsocks_reload_command\"\n"
+                  "docker run \"${run_env_opts[@]}\" --restart=always -d \"${run_port_opts[@]}\"",
+                  " --name ss-libev-v2ray alexzhangs/shadowsocks-libev-v2ray:latest",
+                  " ss-manager \"${run_cmd_opts[@]}\"\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
-                  "bash shadowsocks-manager/one-click-deploy.sh",
-                  " -n '", {"Ref": "SSMDomain"}, "'",
+                  "bash shadowsocks-manager/install.sh",
+                  " -e SSM_TIME_ZONE='", {"Ref": "SSMTimeZone"}, "'",
                   " -u '", {"Ref": "SSMAdminUsername"}, "'",
                   " -p '", {"Ref": "SSMAdminPassword"}, "'",
-                  " -e '", {"Ref": "SSMAdminEmail"}, "'",
-                  " -t '", {"Ref": "SSMTimeZone"}, "'",
+                  " -M '", {"Ref": "SSMAdminEmail"}, "'",
                   " -r '", {"Ref": "SSPortBegin"}, "'",
                   " -R '", {"Ref": "SSPortEnd"}, "'\n"
                 ]]}, ""]},
@@ -662,7 +650,8 @@
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
         "Runtime": "python3.12",
         "Timeout": "180",
-        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
+        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]},
+        "Layers": [{"Ref": "LambdaLayerTldExtract"}]
       }
     },
     "LambdaSnsTopicSubscriberInvokePermission": {
@@ -673,6 +662,20 @@
         "Action": "lambda:InvokeFunction",
         "Principal": "sns.amazonaws.com",
         "SourceArn": {"Ref": "SnsTopicForConfig"}
+      }
+    },
+    "LambdaLayerTldExtract": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Condition": "EnableSSM",
+      "Properties": {
+        "LayerName": "LambdaLayerTldExtract",
+        "Description": "The Lambda layer: tldextract.",
+        "Content": {
+          "S3Bucket": {"Ref": "S3BucketForLambdaLayerTldExtract"},
+          "S3Key": {"Ref": "S3KeyForLambdaLayerTldExtract"}
+        },
+        "CompatibleRuntimes": ["python3.12"],
+        "CompatibleArchitectures": ["x86_64", "arm64"]
       }
     },
     "SnsTopicForConfig": {
@@ -1114,8 +1117,8 @@
     },
     "SSManagerInterface": {
       "Type": "String",
-      "Default": "1",
-      "Description": "Network interface bound to Shadowsocks Manager API on the node. 1: Localhost, 2: Private, 3: Public. Default is 1"
+      "Default": "2",
+      "Description": "Network interface bound to Shadowsocks Manager API on the node. 1: Localhost, 2: Private, 3: Public. Default is 2"
     },
     "SSManagerPort": {
       "Type": "String",
@@ -1132,11 +1135,6 @@
       "Default": "60",
       "AllowedPattern": "\\d{1,3}",
       "Description": "Socket timeout in seconds for Shadowsocks server. Default is 60."
-    },
-    "SSFastopen": {
-      "Type": "String",
-      "Default": "false",
-      "Description": "Enable TCP fast open for Shadowsocks server. Default is 'false'."
     },
     "Domain": {
       "Type": "String",
@@ -1327,6 +1325,16 @@
       "Type": "String",
       "Default": "",
       "Description": "S3 key for LambdaLayerRequests."
+    },
+    "S3BucketForLambdaLayerTldExtract": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 bucket name for LambdaLayerTldExtract."
+    },
+    "S3KeyForLambdaLayerTldExtract": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 key for LambdaLayerTldExtract."
     }
   },
   "Mappings": {

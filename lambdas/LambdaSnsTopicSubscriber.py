@@ -10,6 +10,9 @@ import os
 import time
 import boto3
 
+# The package `tldextract` should be included in the deployment package or the Lambda layer
+import tldextract
+
 print('Loading function')
 
 
@@ -55,15 +58,19 @@ def get_long_region_name(region):
 
 
 def get_host_from_domain(domain):
-    items = domain.split('.')
-    bound = len(items) - 2
-    return '.'.join(items[:bound])
+    """
+    Return the part before the root domain.
+    e.g. foo.bar.baz.example.co.uk -> foo.bar.baz
+    """
+    return tldextract.TLDExtract(cache_dir=None).extract_str(domain).subdomain if domain is not None else None
 
 
 def get_root_from_domain(domain):
-    items = domain.split('.')
-    bound = len(items) - 2
-    return '.'.join(items[bound:])
+    """
+    Return the root domain.
+    # e.g. foo.bar.baz.example.co.uk -> example.co.uk
+    """
+    return tldextract.TLDExtract(cache_dir=None).extract_str(domain).registered_domain if domain is not None else None
 
 
 # timeout and delay: in Seconds

@@ -1,4 +1,3 @@
-*.zip
-!LambdaLayer*.zip
+lambdas/*.zip
+lambdas/layers/python
 .idea
-python/

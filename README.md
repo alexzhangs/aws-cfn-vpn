@@ -66,15 +66,11 @@ aws-cfn-vpn (github)
 ├── aws-cfn-config-provider (github)
 ├── aws-cfn-vpn-lexbot (github)
 ├── aws-cfn-acm (github)
-├── aws-ec2-shadowsocks-libev (github)
-│   └── shadowsocks-libev (yum)
-│       └── v2ray-plugin (github)
-|-- acme.sh (github)
-|-- xsh (github)
-|-- xsh-lib/core (github)
-|-- xsh-lib/aws (github)
-|-- xsh-lib/shadowsocks (github)
-├── shadowsocks-manager (github)
+├── shadowsocks-libev-v2ray (dockerhub)
+│   ├── shadowsocks-libev (dockerhub)
+│   ├── v2ray-plugin (github)
+|   └── acme.sh (github)
+├── shadowsocks-manager (dockerhub)
 │   ├── django (pip)
 │   └── [aws-ec2-ses (github)] - Manually setup involved
 ├── aws-ec2-xl2tpd (github)
@@ -458,6 +454,13 @@ XSH_AWS_CFN_VPN_PLUGINS=v2ray xsh aws/cfn/vpn/cluster -x {0..2} -c vpn -C aws-cf
 
 [acme.sh](https://github.com/acmesh-official/acme.sh) is internally used to provision additional TLS certificate for v2ray-plugin automatically. This certificate is used for the domain `v2ray.ss.yourdomain.com`. 
 
+The corresponding client settings are:
+
+```ini
+plugin: v2ray-plugin
+plugin_opts: tls;host=v2ray.ss.yourdomain.com
+```
+
 > NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
 
 ## Customize the Deployment
@@ -501,6 +504,57 @@ level.
     The TLS certificate is issued for the domain `SSMDomain` with AWS
     ACM service, the service is free, there's no charge for the certificates.
 
+## Development
+
+### Re-generate the sample config files
+
+```bash
+# Unset the environment variables if they are set, otherwise the command will use the values in the environment.
+unset XSH_AWS_CFN_VPN_ENV \
+    XSH_AWS_CFN_VPN_DOMAIN \
+    XSH_AWS_CFN_VPN_DNS \
+    XSH_AWS_CFN_VPN_DNS_USERNAME \
+    XSH_AWS_CFN_VPN_DNS_CREDENTIAL \
+    XSH_AWS_CFN_VPN_PLUGINS
+
+# Generate the sample config file(s): sample-00-sb.conf
+xsh aws/cfn/vpn/config -x 00 -p vpn-0 -b sample -e sb
+
+# Generate the sample config file(s): sample-0-sb.conf, sample-1-sb.conf, sample-2-sb.conf
+xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
+```
+
+### Create the Lambda Layer Packages
+
+1. requests
+
+    ```bash
+    cd lambdas/layers
+    mkdir -p python
+    pip install requests -t python
+    # find and delete all .pyc files and __pycache__ directories
+    find python -name '__pycache__' -type d -exec rm -r {} +
+    find python -name '*.pyc' -type f -delete
+    zip -r9 LambdaLayerRequests.zip python
+    rm -rf python
+    ```
+1. tldextract
+
+    ```bash
+    cd lambdas/layers
+    mkdir -p python
+    pip install tldextract -t python
+    # find and delete all .pyc files and __pycache__ directories
+    find python -name '__pycache__' -type d -exec rm -r {} +
+    find python -name '*.pyc' -type f -delete
+    zip -r9 LambdaLayerTldExtract.zip python
+    rm -rf python
+    ```
+
+* https://www.keyq.cloud/en/blog/creating-an-aws-lambda-layer-for-python-requests-module
+* https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/
+
+
 ## TODO
 
 * Add a default Shadowsocks user like the default user for L2TPD.
@@ -523,7 +577,8 @@ gates.
    1. [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider)
    1. [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot)
    1. [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm)
-   1. [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
+   1. ~~[aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)~~
+   1. [shadowsocks-libev-v2ray](https://github.com/alexzhangs/shadowsocks-libev-v2ray)
    1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
    1. [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses)
    1. [aws-ec2-xl2tpd](https://github.com/alexzhangs/aws-ec2-xl2tpd)
