@@ -62,7 +62,7 @@ def get_host_from_domain(domain):
     Return the part before the root domain.
     e.g. foo.bar.baz.example.co.uk -> foo.bar.baz
     """
-    return tldextract.extract(domain).subdomain
+    return tldextract.TLDExtract(cache_dir=None).extract_str(domain).subdomain if domain is not None else None
 
 
 def get_root_from_domain(domain):
@@ -70,7 +70,7 @@ def get_root_from_domain(domain):
     Return the root domain.
     # e.g. foo.bar.baz.example.co.uk -> example.co.uk
     """
-    return tldextract.extract(domain).registered_domain
+    return tldextract.TLDExtract(cache_dir=None).extract_str(domain).registered_domain if domain is not None else None
 
 
 # timeout and delay: in Seconds
