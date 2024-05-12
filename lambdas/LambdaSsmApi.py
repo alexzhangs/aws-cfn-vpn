@@ -178,7 +178,7 @@ class BaseModel(object):
         data = {}
         for k, v in self.__dict__.items():
             if fields and k not in fields: continue
-            if isinstance(v, (int, str)): data[k] = v
+            if v is None or isinstance(v, (int, str, bool)): data[k] = v
         return data
 
 
