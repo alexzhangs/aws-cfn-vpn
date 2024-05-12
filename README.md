@@ -532,6 +532,9 @@ xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
     cd lambdas/layers
     mkdir -p python
     pip install requests -t python
+    # find and delete all .pyc files and __pycache__ directories
+    find python -name '__pycache__' -type d -exec rm -r {} +
+    find python -name '*.pyc' -type f -delete
     zip -r9 LambdaLayerRequests.zip python
     rm -rf python
     ```
@@ -541,6 +544,9 @@ xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
     cd lambdas/layers
     mkdir -p python
     pip install tldextract -t python
+    # find and delete all .pyc files and __pycache__ directories
+    find python -name '__pycache__' -type d -exec rm -r {} +
+    find python -name '*.pyc' -type f -delete
     zip -r9 LambdaLayerTldExtract.zip python
     rm -rf python
     ```
