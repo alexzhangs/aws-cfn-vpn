@@ -1106,9 +1106,9 @@
     },
     "SSPortEnd": {
       "Type": "String",
-      "Default": "8480",
+      "Default": "8385",
       "AllowedPattern": "\\d{1,5}",
-      "Description": "End port allowed to use for Shadowsocks server. Default is '8480'."
+      "Description": "End port allowed to use for Shadowsocks server. Default is '8385'."
     },
     "SSDomain": {
       "Type": "String",
