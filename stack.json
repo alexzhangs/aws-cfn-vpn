@@ -540,8 +540,7 @@
         "Handler": "LambdaSnsTopicSubscriber.lambda_handler",
         "Runtime": "python3.12",
         "Timeout": "180",
-        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]},
-        "Layers": [{"Ref": "LambdaLayerTldExtract"}]
+        "Role": {"Fn::GetAtt": ["LambdaSnsTopicSubscriberExecutionRole", "Arn"]}
       }
     },
     "LambdaSnsTopicSubscriberInvokePermission": {
@@ -552,20 +551,6 @@
         "Action": "lambda:InvokeFunction",
         "Principal": "sns.amazonaws.com",
         "SourceArn": {"Ref": "SnsTopicForConfig"}
-      }
-    },
-    "LambdaLayerTldExtract": {
-      "Type": "AWS::Lambda::LayerVersion",
-      "Condition": "EnableSSM",
-      "Properties": {
-        "LayerName": "LambdaLayerTldExtract",
-        "Description": "The Lambda layer: tldextract.",
-        "Content": {
-          "S3Bucket": {"Ref": "S3BucketForLambdaLayerTldExtract"},
-          "S3Key": {"Ref": "S3KeyForLambdaLayerTldExtract"}
-        },
-        "CompatibleRuntimes": ["python3.12"],
-        "CompatibleArchitectures": ["x86_64", "arm64"]
       }
     },
     "SnsTopicForConfig": {
@@ -1214,16 +1199,6 @@
       "Type": "String",
       "Default": "",
       "Description": "S3 key for LambdaLayerRequests."
-    },
-    "S3BucketForLambdaLayerTldExtract": {
-      "Type": "String",
-      "Default": "",
-      "Description": "S3 bucket name for LambdaLayerTldExtract."
-    },
-    "S3KeyForLambdaLayerTldExtract": {
-      "Type": "String",
-      "Default": "",
-      "Description": "S3 key for LambdaLayerTldExtract."
     }
   },
   "Mappings": {
