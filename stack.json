@@ -1004,7 +1004,7 @@
     "SSDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "Domain name resolved to Shadowsocks server. Example: ss.yourdomain.com"
+      "Description": "Domain name resolved to Shadowsocks server. Example: ss.example.com"
     },
     "SSDomainNameServerEnv": {
       "Type": "String",
@@ -1047,7 +1047,7 @@
     "SSMDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "Domain Name resolved to Shadowsocks manager. Example: admin.ss.yourdomain.com."
+      "Description": "Domain Name resolved to Shadowsocks manager. Example: admin.ss.example.com."
     },
     "SSMDomainNameServerEnv": {
       "Type": "String",
@@ -1084,7 +1084,7 @@
     "L2TPDomain": {
       "Type": "String",
       "Default": "",
-      "Description": "Domain Name resolved to L2TP server. Example: vpn.yourdomain.com."
+      "Description": "Domain Name resolved to L2TP server. Example: vpn.example.com."
     },
     "L2TPDomainNameServerEnv": {
       "Type": "String",
