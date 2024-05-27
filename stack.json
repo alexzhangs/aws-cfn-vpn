@@ -263,6 +263,14 @@
               "",
               [
                 "#!/bin/bash -ex\n",
+
+                "# Signal the status from cfn-init on EXIT\n",
+                "trap '/opt/aws/bin/cfn-signal -e $?",
+                " --stack ", {"Ref": "AWS::StackName"},
+                " --resource VPNServerInstance",
+                " --region ", {"Ref": "AWS::Region"},
+                "' EXIT\n",
+
                 "yum update -y aws-cfn-bootstrap\n",
                 "# Install the files and packages from the metadata\n",
                 "#/opt/aws/bin/cfn-init ",
@@ -396,13 +404,7 @@
                   "chap-manager.sh -a add",
                   " -u '", {"Ref": "L2TPUsername"}, "'",
                   " -p '", {"Ref": "L2TPPassword"}, "'\n"
-                ]]}, ""]},
-
-                "# Signal the status from cfn-init\n",
-                "/opt/aws/bin/cfn-signal -e $?",
-                " --stack ", {"Ref": "AWS::StackName"},
-                " --resource VPNServerInstance",
-                " --region ", {"Ref": "AWS::Region"}, "\n"
+                ]]}, ""]}
               ]
             ]
           }
