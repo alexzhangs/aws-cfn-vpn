@@ -161,35 +161,43 @@ class NSHandler(Handler):
 
 
 class NameServerHandler(NSHandler):
+    @property
     def name(self):
         return 'nameserver'
 
+    @property
     def env(self):
         return self.cicn.tags['DomainNameServerEnv']
 
 
 class SsmNameServerHandler(NameServerHandler):
+    @property
     def name(self):
         return 'ssm-nameserver'
     
+    @property
     def env(self):
         return self.cicn.tags['SSMDomainNameServerEnv']
     
 
 class SsnNameServerHandler(NameServerHandler):
+    @property
     def name(self):
         return 'ss-nameserver'
     
+    @property
     def env(self):
         return self.cicn.tags['SSDomainNameServerEnv']
     
 
 class L2tpNameServerHandler(NameServerHandler):
+    @property
     def name(self):
         return 'l2tp-nameserver'
     
+    @property
     def env(self):
-        return self.cicn.tags['L2tpDomainNameServerEnv']
+        return self.cicn.tags['L2TPDomainNameServerEnv']
 
 
 class DomainHandler(Handler):
@@ -219,6 +227,7 @@ class DomainHandler(Handler):
 class SsmDomainHandler(DomainHandler):
     nameservers = ['ssm-nameserver', 'nameserver']
 
+    @property
     def domain(self):
         return self.cicn.tags['SSMDomain']
 
@@ -226,6 +235,7 @@ class SsmDomainHandler(DomainHandler):
 class SsnDomainHandler(DomainHandler):
     nameservers = ['ss-nameserver', 'nameserver']
 
+    @property
     def domain(self):
         return self.cicn.tags['SSDomain']
 
@@ -233,6 +243,7 @@ class SsnDomainHandler(DomainHandler):
 class L2tpDomainHandler(DomainHandler):
     nameservers = ['l2tp-nameserver', 'nameserver']
 
+    @property
     def domain(self):
         return self.cicn.tags['L2TPDomain']
 
@@ -288,6 +299,7 @@ class SsmRecordHandler(RecordHandler):
     # associate a site here, so the domain will be added to ALLOWED_HOSTS.
     site = 1
 
+    @property
     def domain(self):
         return self.cicn.tags['SSMDomain']
 
@@ -296,11 +308,13 @@ class SsnRecordHandler(Handler):
     # node cluster shares the same domain, so append the answer to the existing record
     append = True
 
+    @property
     def domain(self):
         return self.cicn.tags['SSDomain']
 
 
 class L2tpRecordHandler(Handler):
+    @property
     def domain(self):
         return self.cicn.tags['L2TPDomain']
 
