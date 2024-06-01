@@ -309,6 +309,7 @@
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
                   "declare ssm_time_zone=", {"Ref": "SSMTimeZone"}, "\n",
+                  "declare ssm_version=", {"Ref": "SSMVersion"}, "\n",
                   "declare ssm_admin_username=", {"Ref": "SSMAdminUsername"}, "\n",
                   "declare ssm_admin_password='", {"Ref": "SSMAdminPassword"}, "'\n",
                   "declare ssm_admin_email=", {"Ref": "SSMAdminEmail"}, "\n",
@@ -341,7 +342,7 @@
 
                   {"Fn::If": ["EnableSSMTLS", "ssm_install_opts+=(-S)\n", ""]},
 
-                  "bash shadowsocks-manager/install.sh \"${ssm_install_opts[@]}\"\n"
+                  "SSM_VERSION=$ssm_version bash shadowsocks-manager/install.sh \"${ssm_install_opts[@]}\"\n"
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
@@ -358,6 +359,7 @@
                   "declare ss_encrypt=", {"Ref": "SSEncrypt"}, "\n",
                   "declare ss_timeout=", {"Ref": "SSTimeout"}, "\n",
                   "declare ss_ports=${ss_port_begin}-${ss_port_end}\n",
+                  "declare ss_version=", {"Ref": "SSVersion"}, "\n",
 
                   "declare -a ss_docker_run_env_opts\n",
                   "declare -a ss_docker_run_port_opts\n",
@@ -386,7 +388,7 @@
                   ]]}, ""]},
 
                   "docker run \"${ss_docker_run_env_opts[@]}\" --restart=always -d \"${ss_docker_run_port_opts[@]}\"",
-                  " --name ss-libev-v2ray alexzhangs/shadowsocks-libev-v2ray:latest",
+                  " --name ss-libev-v2ray alexzhangs/shadowsocks-libev-v2ray:$ss_version",
                   " ss-manager \"${ss_docker_run_cmd_opts[@]}\"\n"
                 ]]}, ""]},
 
@@ -959,6 +961,11 @@
       "AllowedValues": ["0", "1"],
       "Description": "Whether to enable v2ray plugin for Shadowsocks server. 0: no, 1: yes. Default is '0'."
     },
+    "SSVersion": {
+      "Type": "String",
+      "Default": "latest",
+      "Description": "Enter the version of shadowsocks-libev-v2ray. Default is 'latest'."
+    },
     "SnsTopicArn": {
       "Type": "String",
       "Default": "",
@@ -1067,6 +1074,11 @@
       "Type": "String",
       "Default": "UTC",
       "Description": "Prefered Time Zone. Default is 'UTC'."
+    },
+    "SSMVersion": {
+      "Type": "String",
+      "Default": "latest",
+      "Description": "Enter the version of shadowsocks-manager. Default is 'latest'."
     },
     "L2TPDomain": {
       "Type": "String",
