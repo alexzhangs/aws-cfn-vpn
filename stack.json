@@ -158,8 +158,8 @@
       "Condition": "EnableSSM",
       "Properties": {
         "IpProtocol": "tcp",
-        "FromPort": {"Ref": "SSMPort"},
-        "ToPort": {"Ref": "SSMPort"},
+        "FromPort": 80,
+        "ToPort": 80,
         "CidrIp": "0.0.0.0/0",
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
@@ -243,18 +243,6 @@
           {"Fn::If": ["EnableSSN", {
               "Key": "SecretKeyForUserSnsPublisher",
               "Value": {"Fn::GetAtt": ["AccessKeyForUserSnsPublisher", "SecretAccessKey"]}
-            }, {"Ref": "AWS::NoValue"}]},
-          {"Fn::If": ["EnableConfigConsumer", {
-              "Key": "ConditionalDependsOn-LambdaSnsTopicSubscriberInvokePermission",
-              "Value": {"Ref": "LambdaSnsTopicSubscriberInvokePermission"}
-            }, {"Ref": "AWS::NoValue"}]},
-          {"Fn::If": ["EnableConfigConsumer", {
-              "Key": "ConditionalDependsOn-SnsTopicPolicyForConfig",
-              "Value": {"Ref": "SnsTopicPolicyForConfig"}
-            }, {"Ref": "AWS::NoValue"}]},
-          {"Fn::If": ["EnableConfigProvider", {
-              "Key": "ConditionalDependsOn-ConfigProviderStack",
-              "Value": {"Ref": "ConfigProviderStack"}
             }, {"Ref": "AWS::NoValue"}]}
         ],
         "UserData": {
@@ -296,6 +284,9 @@
                 "systemctl start docker\n",
                 "systemctl enable docker\n",
 
+                "declare public_ip=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)\n",
+                "declare private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
+
                 "declare ss_port_begin=", {"Ref": "SSPortBegin"}, "\n",
                 "declare ss_port_end=", {"Ref": "SSPortEnd"}, "\n",
 
@@ -304,8 +295,6 @@
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSM", {"Fn::Join": ["", [
-                  "declare public_ip=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-
                   "git clone --depth 1 https://github.com/alexzhangs/shadowsocks-manager\n",
 
                   "declare ssm_time_zone=", {"Ref": "SSMTimeZone"}, "\n",
@@ -317,6 +306,8 @@
                   "declare -a ssm_install_opts\n",
 
                   "ssm_install_opts+=(-e SSM_TIME_ZONE=$ssm_time_zone)\n",
+                  "ssm_install_opts+=(-e SSM_ALLOWED_SITES_DEFAULTS_PLUS=$private_ip)\n",
+                  "ssm_install_opts+=(-e SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP=True)\n",
                   "ssm_install_opts+=(-u \"$ssm_admin_username\")\n",
                   "ssm_install_opts+=(-p \"$ssm_admin_password\")\n",
                   "ssm_install_opts+=(-M \"$ssm_admin_email\")\n",
@@ -346,8 +337,6 @@
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableSSN", {"Fn::Join": ["", [
-                  "declare private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
-
                   "declare ssm_interface_ip=",
                     {"Fn::If": ["SSMIFLocalhost", "127.0.0.1",
                       {"Fn::If": ["SSMIFPrivate", "$private_ip",
@@ -436,6 +425,25 @@
           "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
           "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
         ],
+        "Policies": [
+          {
+            "PolicyName": "LambdaSsmApiVpcPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:CreateNetworkInterface",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DeleteNetworkInterface"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
         "Path": "/"
       }
     },
@@ -443,25 +451,29 @@
       "Type": "AWS::Lambda::Function",
       "Condition": "EnableSSM",
       "Properties": {
-        "Description": "Provide the Lambda interface for the shadowsocks-manager REST APIs: Domain, Node and SSManager.",
+        "Description": "Provide the Lambda interface for the shadowsocks-manager REST APIs.",
         "Code": {
           "S3Bucket": {"Ref": "S3BucketForLambdaSsmApi"},
           "S3Key": {"Ref": "S3KeyForLambdaSsmApi"}
         },
         "Environment": {
           "Variables": {
-            "STACK_ID": {"Ref": "AWS::StackId"},
-            "SSM_EC2_LOGICAL_ID": "VPNServerInstance",
-            "SSM_PORT": {"Ref": "SSMPort"},
+            "SSM_SCHEME": "http",
+            "SSM_HOST": {"Fn::GetAtt": ["VPNServerInstance", "PrivateIp"]},
             "SSM_ADMIN_USERNAME": {"Ref": "SSMAdminUsername"},
-            "SSM_ADMIN_PASSWORD": {"Ref": "SSMAdminPassword"}
+            "SSM_ADMIN_PASSWORD": {"Ref": "SSMAdminPassword"},
+            "SSM_CSRF_ENABLED": "true"
           }
         },
         "Handler": "LambdaSsmApi.lambda_handler",
         "Runtime": "python3.12",
         "Timeout": "120",
         "Role": {"Fn::GetAtt": ["LambdaSsmApiExecutionRole", "Arn"]},
-        "Layers": [{"Ref": "LambdaLayerRequests"}]
+        "Layers": [{"Ref": "LambdaLayerRequests"}],
+        "VpcConfig": {
+          "SubnetIds": [{"Fn::GetAtt": ["VpcStack", "Outputs.PrivateSubnet01"]}, {"Fn::GetAtt": ["VpcStack", "Outputs.PrivateSubnet02"]}],
+          "SecurityGroupIds": [{"Ref": "VPNServerSG"}]
+        }
       }
     },
     "LambdaSsmApiInvokePermission": {
@@ -1048,11 +1060,6 @@
       "Default": "",
       "NoEcho": "true",
       "Description": "Environment variables required to use the DNS API service for SSMDomain."
-    },
-    "SSMPort": {
-      "Type": "String",
-      "Default": "8000",
-      "Description": "Port number bound to Shadowsocks manager. Default is 8000"
     },
     "SSMAdminUsername": {
       "Type": "String",

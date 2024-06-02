@@ -4,7 +4,7 @@
 Manage the shadowsocks-manager nodes through AWS Lex Bot.
 """
 
-import boto3
+import botocore, boto3
 import json
 import logging
 import os
@@ -18,16 +18,23 @@ logger.setLevel(logging.DEBUG)
 # Helpers to build responses which match the structure of the necessary dialog actions
 
 def call_ssm(**kwargs):
-    client = boto3.client('lambda')
+    config = botocore.config.Config(read_timeout=15, connect_timeout=5, retries={'max_attempts': 2})
+    client = boto3.client('lambda', config=config)
+    print('Calling the Lambda of SSM API with: {}'.format(kwargs))
     resp = client.invoke(
         FunctionName=os.getenv('LAMBDA_SSM_API_ARN'),
-        Payload=json.dumps(kwargs))
+        Payload=json.dumps(kwargs)
+    )
+    print('Response: {}'.format(resp))
     if resp['StatusCode'] >= 400:
-        raise Exception('Failed to call the Lambda of SSM API. Response: ' + resp)
+        raise Exception('Failed to invoke the Lambda of SSM API. Response: {}'.format(resp))
+
     func_resp = json.load(resp['Payload'])
-    if func_resp and isinstance(func_resp, dict) and func_resp.get('errorMessage'):
-        return None
-    return func_resp
+    print('Response from the SSM API: {}'.format(func_resp))
+    if func_resp['status_code'] >= 400:
+        raise Exception('Failed to call the SSM API. Response: {}'.format(func_resp))
+
+    return func_resp['body']
 
 
 def get_slots(intent_request):
@@ -85,7 +92,7 @@ def build_validation_result(is_valid, violated_slot, message_content):
 
 
 def get_instances():
-    return call_ssm(action='list', model='Node', filter=None)
+    return call_ssm(resource='/shadowsocks/node/', method='get', params={})
 
 
 def get_sns_endpoint(instance):

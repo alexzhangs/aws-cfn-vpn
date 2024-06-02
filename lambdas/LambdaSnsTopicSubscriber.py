@@ -7,24 +7,29 @@ in shadowsocks-manager.
 
 import json
 import os
-import time
-import boto3
+import botocore, boto3
 from abc import ABC, abstractmethod
 
 print('Loading function')
 
-
 def call_ssm(**kwargs):
-    client = boto3.client('lambda')
+    config = botocore.config.Config(read_timeout=15, connect_timeout=5, retries={'max_attempts': 2})
+    client = boto3.client('lambda', config=config)
+    print('Calling the Lambda of SSM API with: {}'.format(kwargs))
     resp = client.invoke(
         FunctionName=os.getenv('LAMBDA_SSM_API_ARN'),
-        Payload=json.dumps(kwargs))
+        Payload=json.dumps(kwargs)
+    )
+    print('Response: {}'.format(resp))
     if resp['StatusCode'] >= 400:
-        raise Exception('Failed to call the Lambda of SSM API. Response: ' + resp)
+        raise Exception('Failed to invoke the Lambda of SSM API. Response: {}'.format(resp))
+
     func_resp = json.load(resp['Payload'])
-    if func_resp and isinstance(func_resp, dict) and func_resp.get('errorMessage'):
-        return None
-    return func_resp
+    print('Response from the SSM API: {}'.format(func_resp))
+    if func_resp['status_code'] >= 400:
+        raise Exception('Failed to call the SSM API. Response: {}'.format(func_resp))
+
+    return func_resp['body']
 
 
 def lambda_handler(event, context):
@@ -53,17 +58,6 @@ def get_long_region_name(region):
     resp = client.get_parameter(
         Name='/aws/service/global-infrastructure/regions/{region}/longName'.format(region=region))
     return resp['Parameter']['Value']
-
-
-# timeout and delay: in Seconds
-def wait_call(timeout, delay, func, *args, **kwargs):
-    starter = time.time()
-    while (time.time() - starter) < timeout:
-        ret = func(*args, **kwargs)
-        if ret is not None:
-            return ret
-        else:
-            time.sleep(delay)
 
 
 class CICN(object):
@@ -120,6 +114,9 @@ class CICN(object):
 
 
 class Handler(ABC):
+    # the path of the API
+    api_path = None
+    # limit the resource type to the specific type for the handler
     resource_type = 'AWS::EC2::Instance'
 
     def __init__(self, cicn):
@@ -140,6 +137,8 @@ class Handler(ABC):
 
 
 class NSHandler(Handler):
+    api_path = '/domain/nameserver/'
+
     @property
     @abstractmethod
     def name(self):
@@ -151,13 +150,12 @@ class NSHandler(Handler):
         pass
 
     def create(self):
-        nameserver = dict(name=self.name, env=self.env)
-        nameservers = call_ssm(action='list', model='NameServer', filter=dict(name=self.name))
+        data = dict(name=self.name, env=self.env)
+        nameservers = call_ssm(resource=self.api_path, method='get', params=dict(name=self.name))
         if nameservers:
-            nameserver['id'] = nameservers[0]['id']
-
-        return call_ssm(action='save', model='NameServer', method='PATCH', data=nameserver,
-                        fields=['env'])
+            return call_ssm(resource='{}{}/'.format(self.api_path, nameservers[0]['id']), method='put', json=data)
+        else:
+            return call_ssm(resource=self.api_path, method='post', json=data)
 
 
 class NameServerHandler(NSHandler):
@@ -170,7 +168,7 @@ class NameServerHandler(NSHandler):
         return self.cicn.tags['DomainNameServerEnv']
 
 
-class SsmNameServerHandler(NameServerHandler):
+class SsmNameServerHandler(NSHandler):
     @property
     def name(self):
         return 'ssm-nameserver'
@@ -180,7 +178,7 @@ class SsmNameServerHandler(NameServerHandler):
         return self.cicn.tags['SSMDomainNameServerEnv']
     
 
-class SsnNameServerHandler(NameServerHandler):
+class SsnNameServerHandler(NSHandler):
     @property
     def name(self):
         return 'ss-nameserver'
@@ -190,7 +188,7 @@ class SsnNameServerHandler(NameServerHandler):
         return self.cicn.tags['SSDomainNameServerEnv']
     
 
-class L2tpNameServerHandler(NameServerHandler):
+class L2tpNameServerHandler(NSHandler):
     @property
     def name(self):
         return 'l2tp-nameserver'
@@ -201,54 +199,57 @@ class L2tpNameServerHandler(NameServerHandler):
 
 
 class DomainHandler(Handler):
+    api_path = '/domain/domain/'
     # the name of the nameserver that the domain will be associated with, try them in order
-    nameservers = ['nameserver']
+    nameserver_try_list = ['nameserver']
 
     @property
     @abstractmethod
-    def domain(self):
+    def name(self):
         pass
 
     def create(self):
-        domain = dict(name=self.domain)
-        domains = call_ssm(action='list', model='Domain', filter=dict(name=self.domain))
-        if domains:
-            domain['id'] = domains[0]['id']
+        data = dict(name=self.name)
 
-        for nameserver in self.nameserver:
-            nameservers = call_ssm(action='list', model='NameServer', filter=dict(name=nameserver))
+        for ns_name in self.nameserver_try_list:
+            nameservers = call_ssm(resource=NSHandler.api_path, method='get', params=dict(name=ns_name))
             if nameservers:
-                domain['nameserver'] = nameservers[0]['id']
+                data['nameserver'] = nameservers[0]['id']
                 break
 
-        return call_ssm(action='save', model='Domain', data=domain)
+        domains = call_ssm(resource=self.api_path, method='get', params=dict(name=self.name))
+        if domains:
+            return call_ssm(resource='{}{}/'.format(self.api_path, domains[0]['id']), method='put', json=data)
+        else:
+            return call_ssm(resource=self.api_path, method='post', json=data)
 
 
 class SsmDomainHandler(DomainHandler):
-    nameservers = ['ssm-nameserver', 'nameserver']
+    nameserver_try_list = ['ssm-nameserver', 'nameserver']
 
     @property
-    def domain(self):
+    def name(self):
         return self.cicn.tags['SSMDomain']
 
 
 class SsnDomainHandler(DomainHandler):
-    nameservers = ['ss-nameserver', 'nameserver']
+    nameserver_try_list = ['ss-nameserver', 'nameserver']
 
     @property
-    def domain(self):
+    def name(self):
         return self.cicn.tags['SSDomain']
 
 
 class L2tpDomainHandler(DomainHandler):
-    nameservers = ['l2tp-nameserver', 'nameserver']
+    nameserver_try_list = ['l2tp-nameserver', 'nameserver']
 
     @property
-    def domain(self):
+    def name(self):
         return self.cicn.tags['L2TPDomain']
 
 
 class RecordHandler(Handler):
+    api_path = '/domain/record/'
     # record type
     type = 'A'
     # append the answer to the existing record
@@ -258,7 +259,7 @@ class RecordHandler(Handler):
 
     @property
     @abstractmethod
-    def domain(self):
+    def fqdn(self):
         pass
 
     @property
@@ -266,70 +267,76 @@ class RecordHandler(Handler):
         return self.cicn.resource['publicIpAddress']
 
     def create(self):
-        kwargs = dict(
-            fqdn=self.domain,
+        data = dict(
+            fqdn=self.fqdn,
+            host=None,
+            domain=None,
             type=self.type,
             answer=self.answer,
             site=self.site,
         )
 
-        records = call_ssm(action='list', model='Record', filter=dict(fqdn=self.domain))
+        records = call_ssm(resource=self.api_path, method='get', params=dict(fqdn=self.fqdn, type=self.type))
         if records:
             record = records[0]
             if self.append:
                 old_set = set(record['answer'].lower().split(','))
-                new_set = set(kwargs.pop('answer').lower().split(','))
-                if new_set not in old_set:
-                    record['answer'] = ','.join(old_set.union(new_set))
-            record.update(kwargs)
+                new_set = set(data['answer'].lower().split(','))
+                if old_set not in new_set:
+                    data['answer'] = ','.join(new_set.union(old_set))
+            return call_ssm(resource='{}{}/'.format(self.api_path, record['id']), method='put', json=data)
         else:
-            record = dict(fqdn=self.domain, **kwargs)
-        return call_ssm(action='save', model='Record', data=record)
+            return call_ssm(resource=self.api_path, method='post', json=data)
+
 
     def update(self):
         return self.create()
 
     def delete(self):
-        records = call_ssm(action='list', model='Record', filter=dict(fqdn=self.domain))
+        records = call_ssm(resource=self.api_path, method='get', params=dict(fqdn=self.fqdn, type=self.type, answer=self.answer))
         if records:
-            return call_ssm(action='delete', model='Record', data=records[0])
+            return call_ssm(resource='{}{}/'.format(self.api_path, records[0]['id']), method='delete')
 
 
 class SsmRecordHandler(RecordHandler):
-    # associate a site here, so the domain will be added to ALLOWED_HOSTS.
+    # associate a site id here, so the domain will be added to ALLOWED_HOSTS.
+    # make sure the site id is the same as the Django settings.SITE_ID.
     site = 1
 
     @property
-    def domain(self):
+    def fqdn(self):
         return self.cicn.tags['SSMDomain']
 
 
-class SsnRecordHandler(Handler):
+class SsnRecordHandler(RecordHandler):
     # node cluster shares the same domain, so append the answer to the existing record
     append = True
 
     @property
-    def domain(self):
+    def fqdn(self):
         return self.cicn.tags['SSDomain']
 
 
-class L2tpRecordHandler(Handler):
+class L2tpRecordHandler(RecordHandler):
     @property
-    def domain(self):
+    def fqdn(self):
         return self.cicn.tags['L2TPDomain']
 
 
 class NodeHandler(Handler):
+    api_path = '/shadowsocks/node/'
+
     @property
-    def domain(self):
+    def record(self):
         return self.cicn.tags['SSDomain']
 
     @property
-    def node_name(self):
+    def name(self):
         return self.cicn.tags['Name']
 
     def create(self):
-        kwargs = dict(
+        data = dict(
+            name=self.name,
             public_ip=self.cicn.resource['publicIpAddress'],
             private_ip=self.cicn.resource['privateIpAddress'],
             location=get_long_region_name(self.cicn.item['awsRegion']),
@@ -338,38 +345,36 @@ class NodeHandler(Handler):
             sns_access_key=self.cicn.tags.get('AccessKeyForUserSnsPublisher'),
             sns_secret_key=self.cicn.tags.get('SecretKeyForUserSnsPublisher'),
         )
-        
-        # lookup existing nodes with the same name
-        nodes = call_ssm(action='list', model='Node', filter=dict(name=self.node_name))
-        if nodes:
-            # use existing node
-            node = nodes[0]
-            node.update(kwargs)
-        else:
-            # create new node
-            node = dict(name=self.node_name, **kwargs)
 
         # lookup existing DNS records which must exist
-        records = call_ssm(action='list', model='Record', filter=dict(fqdn=self.domain))
+        records = call_ssm(resource=RecordHandler.api_path, method='get', params=dict(fqdn=self.record, type=RecordHandler.type))
         if records:
-            node['record'] = records[0]['id']
+            data['record'] = records[0]['id']
         else:
-            print('not found the instance of Record: {} for creating the node: {}'.format(self.domain, self.node_name))
+            print('not found the instance of Record: {} for creating the node: {}'.format(self.record, self.name))
             return
-        return call_ssm(action='save', model='Node', data=node)
+
+        # lookup existing nodes with the same name
+        nodes = call_ssm(resource=self.api_path, method='get', params=dict(name=self.name))
+        if nodes:
+            return call_ssm(resource='{}{}/'.format(self.api_path, nodes[0]['id']), method='put', json=data)
+        else:
+            return call_ssm(resource=self.api_path, method='post', json=data)
 
     def update(self):
         return self.create()
 
     def delete(self):
-        nodes = call_ssm(action='list', model='Node', filter=dict(name=self.name))
+        nodes = call_ssm(resource=self.api_path, method='get', params=dict(name=self.name))
         if nodes:
             node = nodes[0]
             node['is_active'] = False
-            return call_ssm(action='save', model='Node', method='PATCH', data=node, fields=['is_active'])
+            return call_ssm(resource='{}{}/'.format(self.api_path, node['id']), method='put', json=node)
 
 
 class SSManagerHandler(Handler):
+    api_path = '/shadowsocks/ssmanager/'
+
     @property
     def node_name(self):
         return self.cicn.tags['Name']
@@ -379,20 +384,19 @@ class SSManagerHandler(Handler):
         return self.cicn.tags['SSManager']
 
     def create(self):
-        kwargs = json.loads(self.ssmanager)
+        data = json.loads(self.ssmanager)
 
-        ssmanagers = call_ssm(action='list', model='SSManager', filter=dict(node__name=self.node_name))
+        ssmanagers = call_ssm(resource=self.api_path, method='get', params=dict(node__name=self.node_name))
         if ssmanagers:
-            ssmanager = ssmanagers[0]
-            ssmanager.update(kwargs)
+            return call_ssm(resource='{}{}/'.format(self.api_path, ssmanagers[0]['id']), method='put', json=data)
         else:
-            nodes = call_ssm(action='list', model='Node', filter=dict(name=self.node_name))
+            nodes = call_ssm(resource=NodeHandler.api_path, params=dict(name=self.node_name), method='get')
             if nodes:
-                ssmanager = dict(node=nodes[0]['id'], **kwargs)
+                data['node'] = nodes[0]['id']
+                return call_ssm(resource=self.api_path, method='post', json=data)
             else:
                 print('not found the instance of Node: {} for creating the ssmanager'.format(self.node_name))
                 return
-        return call_ssm(action='save', model='SSManager', data=ssmanager)
 
     def update(self):
         return self.create()
