@@ -15,7 +15,9 @@ and L2TPD, and is trying to make the deployment as easy as possible.
 Additionally, it's also deploying
 [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
 which is a web-based Shadowsocks management tool for multi-user and traffic statistics,
-support multi-node, creating DNS records, and syncing IPs to name.com.
+support multi-node and DNS record management through dns-lexicon.
+
+## Screenshots
 
 ![stack list](/assets/images/aws-cfn-vpn.png)
 
@@ -35,9 +37,9 @@ Shadowsocks-libev:
 * Active/Inactive users and nodes.
 * Heartbeat to detect the port alive on the node.
 * Auto-create the DNS records for the domains of the web console, L2TP,
-  and Shadowsocks nodes in [name.com](https://name.com).
+  and Shadowsocks nodes in your DNS provider.
 * Auto-sync the node info to shadowsocks-manager.
-* Auto-sync the node IP address to [name.com](https://name.com).
+* Auto-sync the node IP address to your DNS provider.
 * Traffic statistics on ports and nodes(minimize the impact of
   node restart).
 * Change node IP address from:
@@ -65,14 +67,14 @@ aws-cfn-vpn (github)
 ├── aws-cfn-vpc-peer-requester (github)
 ├── aws-cfn-config-provider (github)
 ├── aws-cfn-vpn-lexbot (github)
-├── aws-cfn-acm (github)
 ├── shadowsocks-libev-v2ray (dockerhub)
 │   ├── shadowsocks-libev (dockerhub)
 │   ├── v2ray-plugin (github)
 |   └── acme.sh (github)
 ├── shadowsocks-manager (dockerhub)
 │   ├── django (pip)
-│   └── [aws-ec2-ses (github)] - Manually setup involved
+│   ├── [aws-ec2-ses (github)] - Manually setup involved
+|   └── acme.sh (github)
 ├── aws-ec2-xl2tpd (github)
 │   ├── openswan (yum)
 │   └── xl2tpd (yum)
@@ -92,8 +94,8 @@ following resources:
 
 * 1 EC2 Instance.
     * Shadowsocks-libev is installed if set `EnableSSN=1`.
+        * v2ray-plugin is installed if set `SSV2Ray=1`.
     * shadowsocks-manager is installed if set `EnableSSM=1`.
-    * v2ray-plugin is installed if set `EnableV2ray=1`.
     * L2TPD is installed if set `EnableL2TP=1`.
 
     For the input parameters and the detail of the template, please check the template
@@ -144,20 +146,6 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
     For the details check
     [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot).
 
-* 1 nested ACM service stack if set `EnableSSM=1` and `SSMDomain` is
-used.
-
-    It set up AWS Certificate Manager service on the manager stack, to automate certificates provision.
-
-    The following chart shows how it works.
-
-    | Manager Stacks           | 3rd DNS Service Provider |
-    |--------------------------|--------------------------|
-    | Custom Resource → Lambda | → API → DNS Records      |
-
-    For the details check
-    [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm).
-
 ### sample-*.conf
 
 `sample-*.conf` are config files used by `aws/cfn/vpn/deploy` to automate AWS CloudFormation template deployment.
@@ -190,13 +178,13 @@ There are 3 sample config files for this.
 There are 3 DNS hostnames needed for your services:
 
 1. The domain name pointing to shadowsocks-manager service, such
-as `admin.ss.yourdomain.com`.
+as `admin.ss.example.com`.
 
 1. The domain name pointing to L2TPD services, such as
-`vpn.yourdomain.com`.
+`vpn.example.com`.
 
 1. The domain name pointing to Shadowsocks nodes, such as
-`ss.yourdomain.com`, or `v2ray.ss.yourdomain.com` for v2ray plugin enabled nodes.
+`ss.example.com`, or `v2ray.ss.example.com` for v2ray plugin enabled nodes.
 
 ## Deploy
 
@@ -289,7 +277,6 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-acceptor
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
 $ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
-$ git clone https://github.com/alexzhangs/aws-cfn-acm
 ```
 
 ### Create the manager stack and the node stacks
@@ -300,12 +287,11 @@ The simplest way to create the stacks is to use the high-level wrapper command `
 
 ```bash
 # Set the environment variables
-XSH_AWS_CFN_VPN_ENV=sb  # sb stands for sandbox
-XSH_AWS_CFN_VPN_DOMAIN=Example.com  # replace with your domain
-XSH_AWS_CFN_VPN_DNS=name.com
-XSH_AWS_CFN_VPN_DNS_USERNAME=DomainNameServerUsername  # replace with your name.com API username
-XSH_AWS_CFN_VPN_DNS_CREDENTIAL=DomainNameServerCredential  # replace with your name.com API credential
-#XSH_AWS_CFN_VPN_PLUGINS=v2ray  # uncomment this if want to enable v2ray-plugin
+XACVC_BASE_DOMAIN=example.com  # replace with your domain
+XACVC_XACC_OPTIONS_DomainNameServerEnv='PROVIDER={dns_provider},LEXICON_PROVIDER_NAME={dns_provider},LEXICON_{DNS_PROVIDER}_{OPTION}={value}[,...]'  # replace with your DNS provider and credentials, see `xsh help -s Environment aws/cfn/vpn/config`
+# example:
+XACVC_XACC_OPTIONS_DomainNameServerEnv='PROVIDER=namecom,LEXICON_PROVIDER_NAME=namecom,LEXICON_NAMECOM_AUTH_USERNAME=your_username,LEXICON_NAMECOM_AUTH_TOKEN=your_token'
+# XACVC_XACC_OPTIONS_SSV2Ray=1  # uncomment this if want to enable v2ray-plugin
 
 # Create the config files and deploy the stacks at once
 xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
@@ -313,12 +299,13 @@ xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
 
 The options listed above is the best practice for the deployment. It minimizes the manual work and the risk of errors, also provides the best security.
 
-However, it requires you own a domain in [name.com](https://name.com) and have the name.com API enabled.
+`XACVC_XACC_OPTIONS_DomainNameServerEnv` defines the DNS provider and API credentials. It's used to create and update the DNS records for the domains of the web console, L2TP, and Shadowsocks nodes. The TLS certificate (for web console) provision process also depends on it to be fully automated.
 
-`DomainNameServerUsername` and `DomainNameServerCredential` are the API credentials of name.com. They are used to create and update the DNS records for the domains of the web console, L2TP, and Shadowsocks nodes. The TLS certificate (for web console) provision process also depends on it to be fully automated.
-
-The API credentials can be generated at your
-[name.com API settings](https://www.name.com/account/settings/api).
+| Project                 | Component                  | DNS Library             | Usage                     | Purpose              | Impacted Domain                     | Impacted Feature |
+|-------------------------|----------------------------|-------------------------|---------------------------|----------------------|-------------------------------------|------------------|
+| shadowsocks-manager     | docker-entrypoint.sh       | acme.sh => dns-lexicon  | domain owner verification | issuing certificates | SSMDomain                           | Nginx HTTPS      |
+| shadowsocks-manager     | domain/models.py           | dns-lexicon             | DNS record management     | DNS record sync      | SSMDomain<br>L2TPDomain<br>SSDomain | DNS record sync  |
+| shadowsocks-libev-v2ray | docker-entrypoint.sh       | acme.sh => dns-lexicon  | domain owner verification | issuing certificates | SSMDomain                           | v2ray-plugin     |
 
 The command takes around 30 minutes to complete. If everything goes smoothly, you will get 1 manager stack with the L2TPD enabled, and 2 Shadowsocks node stacks with traffic balanced by DNS. You will be able to log in to your manager stack web console with the domain name without any additional setting. 
 
@@ -332,8 +319,7 @@ The command takes around 30 minutes to complete. If everything goes smoothly, yo
 
 ```bash
 # Set the environment variables
-XSH_AWS_CFN_VPN_ENV=sb  # sb stands for sandbox
-XSH_AWS_CFN_VPN_DOMAIN=Example.com  # replace with your domain
+XACVC_BASE_DOMAIN=example.com  # replace with your domain
 
 # Create the config files and deploy the stacks at once
 xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
@@ -348,9 +334,6 @@ console for the manager stack AWS account, to obtain the DNS record info. Once t
 #### The Way without Domain
 
 ```bash
-# Set the environment variables
-XSH_AWS_CFN_VPN_ENV=sb  # sb stands for sandbox
-
 # Create the config files and deploy the stacks at once
 xsh aws/cfn/vpn/cluster -x 0-2 -c vpn -C aws-cfn-vpn
 
@@ -364,7 +347,7 @@ If the domain is not enabled at all, the manager stack web console is not HTTPS 
 
 Open your browser, visit `http://<PUBLIC_IP>/admin`, a login screen should show up.
 
-Or visit `https://admin.ss.yourdomain.com/admin`. Note that you
+Or visit `https://admin.ss.example.com/admin`. Note that you
 must use the HTTPS protocol with using the domain, the HTTP protocol
 won't work with it.
 
@@ -382,25 +365,25 @@ shadowsocks-manager should have taken care of the DNS records.
 
 If you are not in the case above, proceed with the following steps:
 
-1. Create a DNS `CNAME record`, such as `admin.ss`.yourdomain.com,
-pointing to the public DNS name of the ELB of the manager stack.
+1. Create a DNS `A record`, such as `admin.ss`.example.com,
+pointing to the public IP address of the EC2 instance of the manager stack.
 
     Use this domain to access the shadowsocks-manager.
 
-1. Create a DNS `A record`, such as `vpn`.yourdomain.com, pointing to the
-public IP of EC2 Instance of manager stack.
+1. Create a DNS `A record`, such as `vpn`.example.com,
+pointing to the public IP address of the EC2 instance of the manager stack.
 
     Use this domain to access the L2TP service.
 
-1. Create a DNS `A record`, such as `ss`.yourdomain.com pointing to
-the public IP of EC2 Instance of node stack.
+1. Create a DNS `A record`, such as `ss`.example.com,
+pointing to the public IP address of the EC2 Instance of node stack.
 
     Use this domain to access the Shadowsocks service.
 
 ## Configure shadowsocks-manager
 
 1. Log in to the shadowsocks-manager web console at
-`https://admin.ss.yourdomain.com/admin` after the DNS records get
+`https://admin.ss.example.com/admin` after the DNS records get
 effective.
 
 1. Go to `Home › Shadowsocks › Shadowsocks Nodes`, to check the node
@@ -434,40 +417,26 @@ The default credential defined within `vpn-0-sb.conf` is:
 
 ## v2ray-plugin
 
-[V2ray-plugin](https://github.com/shadowsocks/v2ray-plugin) is optionally supported for the Shadowsocks nodes in Websocket (HTTPS) mode.
-
-This feature is experimental and is disabled by default. It requires several options to be set properly in the node stack config file.
-
-```ini
-"EnableV2ray=1"
-"SSDomain=<v2ray.ss.yourdomain.com>"
-"DomainNameServer=name.com"
-"DomainNameServerUsername=<YourDomainNameServerUsername>"
-"DomainNameServerCredential=<YourDomainNameServerCredential>"
-```
-
-Use below command to deploy v2ray-plugin enabled nodes:
-
-```bash
-XSH_AWS_CFN_VPN_PLUGINS=v2ray xsh aws/cfn/vpn/cluster -x {0..2} -c vpn -C aws-cfn-vpn
-```
-
-[acme.sh](https://github.com/acmesh-official/acme.sh) is internally used to provision additional TLS certificate for v2ray-plugin automatically. This certificate is used for the domain `v2ray.ss.yourdomain.com`. 
+[v2ray-plugin](https://github.com/shadowsocks/v2ray-plugin) is optionally supported for the Shadowsocks nodes in Websocket (HTTPS) mode.
 
 The corresponding client settings are:
 
 ```ini
 plugin: v2ray-plugin
-plugin_opts: tls;host=v2ray.ss.yourdomain.com
+plugin_opts: tls;host=v2ray.ss.example.com
 ```
 
 > NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
 
 ## Customize the Deployment
 
-The deployment can be customized by editing the config files, or their templates at `aws-cfn-vpn/config-templates` before to generate config files.
+The deployment can be customized by:
 
-Also the deployment can be customized by using the low-level wrapper command `aws/cfn/vpn/config` and `aws/cfn/vpn/deploy` provided by the `xsh-lib/aws` library.
+* setting the environment variables.
+* editing the config files.
+* editing config templates at `aws-cfn-vpn/config-templates` before to generate config files.
+* using the low-level wrapper command `aws/cfn/vpn/config` and `aws/cfn/vpn/deploy` provided by the `xsh-lib/aws` library.
+* editing the stack template `aws-cfn-vpn/stack.json`.
 
 See help document of the commands for the details.
 
@@ -506,22 +475,23 @@ level.
 
 ## Development
 
+### Setup Development Environment
+
 ### Re-generate the sample config files
 
 ```bash
-# Unset the environment variables if they are set, otherwise the command will use the values in the environment.
-unset XSH_AWS_CFN_VPN_ENV \
-    XSH_AWS_CFN_VPN_DOMAIN \
-    XSH_AWS_CFN_VPN_DNS \
-    XSH_AWS_CFN_VPN_DNS_USERNAME \
-    XSH_AWS_CFN_VPN_DNS_CREDENTIAL \
-    XSH_AWS_CFN_VPN_PLUGINS
+# use subshell
+(
+    # Unset the environment variables if they are set, otherwise the command will use the values in the environment.
+    unset $(declare -p | grep ^XACVC | awk -F= '{print $1}')
+    declare -p | grep ^XACVC
 
-# Generate the sample config file(s): sample-00-sb.conf
-xsh aws/cfn/vpn/config -x 00 -p vpn-0 -b sample -e sb
+    # Generate the sample config file(s): sample-00-sb.conf
+    xsh aws/cfn/vpn/config -x 00 -p vpn-00 -b sample -e sb
 
-# Generate the sample config file(s): sample-0-sb.conf, sample-1-sb.conf, sample-2-sb.conf
-xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
+    # Generate the sample config file(s): sample-0-sb.conf, sample-1-sb.conf, sample-2-sb.conf
+    xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
+)
 ```
 
 ### Create the Lambda Layer Packages
@@ -538,7 +508,7 @@ xsh aws/cfn/vpn/config -x 0-2 -p vpn-{0..2} -b sample -e sb
     zip -r9 LambdaLayerRequests.zip python
     rm -rf python
     ```
-1. tldextract
+1. tldextract (no longer required)
 
     ```bash
     cd lambdas/layers
@@ -576,7 +546,7 @@ gates.
    1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester)
    1. [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider)
    1. [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot)
-   1. [aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm)
+   1. ~~[aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm)~~
    1. ~~[aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)~~
    1. [shadowsocks-libev-v2ray](https://github.com/alexzhangs/shadowsocks-libev-v2ray)
    1. [shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager)
