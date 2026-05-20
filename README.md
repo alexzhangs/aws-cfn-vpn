@@ -45,7 +45,6 @@ Shadowsocks-libev:
 * Change node IP address from:
     * Web console
     * scheduled job
-    * Amazon Lex chatbot
     * REST API
     * AWS SNS message
 * Support v2ray-plugin on node level.
@@ -66,7 +65,6 @@ aws-cfn-vpn (github)
 ├── aws-cfn-vpc-peer-acceptor (github)
 ├── aws-cfn-vpc-peer-requester (github)
 ├── aws-cfn-config-provider (github)
-├── aws-cfn-vpn-lexbot (github)
 ├── shadowsocks-libev-v2ray (dockerhub)
 │   ├── shadowsocks-libev (dockerhub)
 │   ├── v2ray-plugin (github)
@@ -132,19 +130,6 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     For the details check
     [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
-
-* 1 Lex chat bot if set `EnableLexBot=1`.
-
-    The chatbot is used to manage the node stacks.
-
-    The following chart shows the deployment topology and the control flow.
-
-    | 3rd Part Apps                 | Manager Stack        | Node Stacks                           |
-    |-------------------------------|----------------------|---------------------------------------|
-    | Facebook, Slack, ... → text → | → Lex bot → Lambda → | → SNS → Lambda → CloudFormation → EIP |
-
-    For the details check
-    [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot).
 
 ### sample-*.conf
 
@@ -276,7 +261,6 @@ $ git clone https://github.com/alexzhangs/aws-cfn-vpc
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-acceptor
 $ git clone https://github.com/alexzhangs/aws-cfn-vpc-peer-requester
 $ git clone https://github.com/alexzhangs/aws-cfn-config-provider
-$ git clone https://github.com/alexzhangs/aws-cfn-vpn-lexbot
 ```
 
 ### Create the manager stack and the node stacks
@@ -463,7 +447,6 @@ level.
     For the EC2 instance of the Node stacks, the following methods are recommended:
 
     * Use the admin web console at `Home › Shadowsocks › Shadowsocks Nodes`.
-    * Use the Lex chatbot.
 
 1. How to enable the HTTPS(SSL certificate) for the Manager stack?
 
@@ -545,7 +528,6 @@ gates.
    1. [aws-cfn-vpc-peer-acceptor](https://github.com/alexzhangs/aws-cfn-vpc-peer-acceptor)
    1. [aws-cfn-vpc-peer-requester](https://github.com/alexzhangs/aws-cfn-vpc-peer-requester)
    1. [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider)
-   1. [aws-cfn-vpn-lexbot](https://github.com/alexzhangs/aws-cfn-vpn-lexbot)
    1. ~~[aws-cfn-acm](https://github.com/alexzhangs/aws-cfn-acm)~~
    1. ~~[aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)~~
    1. [shadowsocks-libev-v2ray](https://github.com/alexzhangs/shadowsocks-libev-v2ray)
