@@ -700,6 +700,95 @@
         },
         "Topics": [{"Ref": "SnsTopicForSsn"}]
       }
+    },
+    "LambdaSlackBotExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "EnableSlackBot",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": ["lambda.amazonaws.com"]},
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "LambdaInvokeFunction",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["lambda:InvokeFunction"],
+                  "Resource": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]}
+                }
+              ]
+            }
+          },
+          {
+            "PolicyName": "SnsPublish",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["sns:Publish"],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/"
+      }
+    },
+    "LambdaSlackBot": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "EnableSlackBot",
+      "Properties": {
+        "Description": "Slack slash-command handler for shadowsocks-manager node operations.",
+        "Code": {
+          "S3Bucket": {"Ref": "S3BucketForLambdaSlackBot"},
+          "S3Key": {"Ref": "S3KeyForLambdaSlackBot"}
+        },
+        "Environment": {
+          "Variables": {
+            "LAMBDA_SSM_API_ARN": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]},
+            "SLACK_SIGNING_SECRET": {"Ref": "SlackSigningSecret"},
+            "SLACK_ALLOWED_USERS": {"Ref": "SlackAllowedUsers"},
+            "SLACK_ALLOWED_CHANNELS": {"Ref": "SlackAllowedChannels"}
+          }
+        },
+        "Handler": "LambdaSlackBot.lambda_handler",
+        "Runtime": "python3.12",
+        "Timeout": "10",
+        "Role": {"Fn::GetAtt": ["LambdaSlackBotExecutionRole", "Arn"]}
+      }
+    },
+    "LambdaSlackBotUrl": {
+      "Type": "AWS::Lambda::Url",
+      "Condition": "EnableSlackBot",
+      "Properties": {
+        "TargetFunctionArn": {"Fn::GetAtt": ["LambdaSlackBot", "Arn"]},
+        "AuthType": "NONE"
+      }
+    },
+    "LambdaSlackBotUrlPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EnableSlackBot",
+      "Properties": {
+        "FunctionName": {"Fn::GetAtt": ["LambdaSlackBot", "Arn"]},
+        "Action": "lambda:InvokeFunctionUrl",
+        "Principal": "*",
+        "FunctionUrlAuthType": "NONE"
+      }
     }
   },
   "Conditions": {
@@ -730,6 +819,9 @@
     },
     "EnableConfigProvider": {
       "Fn::Equals": [{"Ref": "EnableConfigProvider"}, "1"]
+    },
+    "EnableSlackBot": {
+      "Fn::Equals": [{"Ref": "EnableSlackBot"}, "1"]
     },
     "SSMDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]
@@ -1044,6 +1136,28 @@
       "Default": "",
       "Description": "Config Provider stack template URL, must be an AWS S3 URL."
     },
+    "EnableSlackBot": {
+      "Type": "String",
+      "Default": "0",
+      "AllowedValues": ["0", "1"],
+      "Description": "Specifies whether the Slack slash-command bot should be set up so that node operations (e.g. change IP) can be invoked from Slack. Requires EnableSSM=1. The default is '0'."
+    },
+    "SlackSigningSecret": {
+      "Type": "String",
+      "Default": "",
+      "NoEcho": true,
+      "Description": "Slack app Signing Secret (from the app's Basic Information page). Required when EnableSlackBot=1; used to authenticate inbound slash-command requests."
+    },
+    "SlackAllowedUsers": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Optional CSV of Slack user IDs allowed to invoke the bot (e.g. 'U123,U456'). Empty disables the user allowlist."
+    },
+    "SlackAllowedChannels": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Optional CSV of Slack channel IDs where the bot may be invoked (e.g. 'C123,C456'). Empty disables the channel allowlist."
+    },
     "VpcStackTemplateURL": {
       "Type": "String",
       "Default": "",
@@ -1078,6 +1192,16 @@
       "Type": "String",
       "Default": "",
       "Description": "S3 key for LambdaSsmApi."
+    },
+    "S3BucketForLambdaSlackBot": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 bucket name for LambdaSlackBot."
+    },
+    "S3KeyForLambdaSlackBot": {
+      "Type": "String",
+      "Default": "",
+      "Description": "S3 key for LambdaSlackBot."
     },
     "S3BucketForLambdaLayerRequests": {
       "Type": "String",
@@ -1210,6 +1334,11 @@
     "SnsTopicArnForSsn": {
       "Condition": "EnableSSN",
       "Value": {"Ref": "SnsTopicForSsn"}
+    },
+    "SlackBotUrl": {
+      "Condition": "EnableSlackBot",
+      "Description": "Register this URL as the Request URL for the /vpn slash command in your Slack app's Slash Commands configuration.",
+      "Value": {"Fn::GetAtt": ["LambdaSlackBotUrl", "FunctionUrl"]}
     },
     "IamPeerRoleArn": {
       "Condition": "EnableVpcPeerAcceptor",
