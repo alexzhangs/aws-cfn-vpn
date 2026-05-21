@@ -47,6 +47,7 @@ Shadowsocks-libev:
     * scheduled job
     * REST API
     * AWS SNS message
+    * Slack slash command (`/vpn change-ip <node>`)
 * Support v2ray-plugin on node level.
 
 L2TPD:
@@ -130,6 +131,22 @@ file [stack.json](https://github.com/alexzhangs/aws-cfn-vpn).
 
     For the details check
     [aws-cfn-config-provider](https://github.com/alexzhangs/aws-cfn-config-provider).
+
+* 1 Slack slash-command bot if set `EnableSlackBot=1`.
+
+    The bot exposes a Lambda Function URL that handles Slack slash commands.
+    Register the URL as the Request URL for a `/vpn` slash command in your
+    Slack app, and operators can rotate node IPs (and run other node ops)
+    from any device with an authenticated Slack session, with no repo
+    binding required.
+
+    The following chart shows the control flow.
+
+    | Slack workspace                | Manager Stack                  | Node Stacks                           |
+    |--------------------------------|--------------------------------|---------------------------------------|
+    | `/vpn change-ip <node>` →      | → Lambda Function URL → Lambda → | → SNS → Lambda → EIP rotation         |
+
+    See the [Slack bot setup](#slack-bot-setup) section below.
 
 ### sample-*.conf
 
@@ -411,6 +428,70 @@ plugin_opts: tls;host=v2ray.ss.example.com
 ```
 
 > NOTE: The v2ray-plugin is set on node level, all accounts creating on this node are going to be v2ray enabled.
+
+## Slack bot setup
+
+Replaces the retired Amazon Lex chatbot. A single Lambda behind a Function URL
+handles Slack slash commands; same SNS-driven IP-rotation pipeline downstream.
+
+Why Slack rather than a CI workflow or web UI: an authenticated Slack session
+is the most portable trigger surface — no repo clone, no IDE, no VPN to a
+private dashboard. You can rotate an IP from your phone.
+
+### Slash command grammar
+
+| Command | Action |
+|---|---|
+| `/vpn change-ip <node-name>` | Rotate the EIP on the named node |
+| `/vpn list` | List known node names |
+| `/vpn help` | Show usage |
+
+### One-time setup
+
+1. **Create a Slack app** at https://api.slack.com/apps → *Create New App* → *From scratch*. Name it (e.g. `vpn-bot`) and pick the workspace.
+
+2. **Copy the Signing Secret** from *Basic Information* → *App Credentials*. You'll pass this as the `SlackSigningSecret` CloudFormation parameter (it's `NoEcho`).
+
+3. **Deploy the stack** with `EnableSlackBot=1` and `SlackSigningSecret=<secret>` set. After `CREATE_COMPLETE`, fetch the `SlackBotUrl` output:
+   ```sh
+   aws cloudformation describe-stacks --stack-name <stack> \
+       --query 'Stacks[0].Outputs[?OutputKey==`SlackBotUrl`].OutputValue' --output text
+   ```
+
+4. **Register the slash command** in your Slack app: *Slash Commands* → *Create New Command*:
+   - **Command**: `/vpn`
+   - **Request URL**: paste the `SlackBotUrl` value
+   - **Short Description**: `VPN node control`
+   - **Usage Hint**: `change-ip <node-name> | list | help`
+
+5. **Install the app** to your workspace (*Install App* → *Install to Workspace*). Approve the permissions prompt.
+
+6. **Try it**: type `/vpn help` in any Slack channel where the app has access.
+
+### Restricting who can use it (recommended)
+
+To limit invocation to specific users/channels, set either or both of:
+
+- `SlackAllowedUsers` — CSV of Slack user IDs (e.g. `U01ABCDE,U02FGHIJ`).
+  Get user IDs from the Slack profile menu → *Copy member ID*.
+- `SlackAllowedChannels` — CSV of Slack channel IDs (e.g. `C01ABCDE`).
+  Get channel IDs from channel name → *Details* → *About* tab.
+
+If both are empty (default), there is no allowlist — any user in any
+workspace channel can invoke the bot. The signing-secret check still
+authenticates the request as coming from your workspace, so this isn't
+unsafe, but for production use a user allowlist is strongly recommended.
+
+### Security model
+
+- **Request authentication**: every inbound request is verified against
+  `SlackSigningSecret` (HMAC-SHA256 of `v0:{timestamp}:{body}`, constant-time
+  compared). Requests older than 5 minutes are rejected.
+- **No secrets in transit**: the Lambda Function URL uses `AuthType=NONE`
+  because Slack signs requests with a shared secret rather than an IAM token.
+- **Downstream actions**: the Lambda invokes the existing `LambdaSsmApi`
+  for node lookup and publishes to the existing `SnsTopicForSsn`. The IAM
+  role grants only those two permissions plus basic CloudWatch logging.
 
 ## Customize the Deployment
 
