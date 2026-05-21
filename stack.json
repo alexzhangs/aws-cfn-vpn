@@ -61,18 +61,6 @@
         "TimeoutInMinutes": "5"
       }
     },
-    "LexBotStack": {
-      "Type": "AWS::CloudFormation::Stack",
-      "Condition": "EnableLexBot",
-      "Properties": {
-        "TemplateURL": {"Ref": "LexBotStackTemplateURL"},
-        "Parameters": {
-          "Region": {"Ref": "LexBotRegion"},
-          "LambdaArn": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
-        },
-        "TimeoutInMinutes": "3"
-      }
-    },
     "VPNServerSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
@@ -712,92 +700,6 @@
         },
         "Topics": [{"Ref": "SnsTopicForSsn"}]
       }
-    },
-    "LambdaLexBotExecutionRole": {
-      "Type": "AWS::IAM::Role",
-      "Condition": "EnableLexBot",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {"Service": ["lambda.amazonaws.com"]},
-              "Action": ["sts:AssumeRole"]
-            }
-          ]
-        },
-        "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-        ],
-        "Policies": [
-          {
-            "PolicyName": "LambdaInvokeFunction",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "lambda:InvokeFunction"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          },
-          {
-            "PolicyName": "SnsPublish",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "sns:Publish"
-                  ],
-                  "Resource": "*"
-                }
-              ]
-            }
-          }
-        ],
-        "Path": "/"
-      }
-    },
-    "LambdaLexBot": {
-      "Type": "AWS::Lambda::Function",
-      "Condition": "EnableLexBot",
-      "Properties": {
-        "Description": "Manage the shadowsocks-manager nodes through AWS Lex Bot.",
-        "Code": {
-          "S3Bucket": {"Ref": "S3BucketForLambdaLexBot"},
-          "S3Key": {"Ref": "S3KeyForLambdaLexBot"}
-        },
-        "Environment": {
-          "Variables": {
-            "LAMBDA_SSM_API_ARN": {"Fn::GetAtt": ["LambdaSsmApi", "Arn"]}
-          }
-        },
-        "Handler": "LambdaLexBot.lambda_handler",
-        "Runtime": "python3.12",
-        "Timeout": "10",
-        "Role": {"Fn::GetAtt": ["LambdaLexBotExecutionRole", "Arn"]}
-      }
-    },
-    "LambdaLexBotInvokePermission": {
-      "Type": "AWS::Lambda::Permission",
-      "Condition": "EnableLexBot",
-      "Properties": {
-        "FunctionName": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]},
-        "Action": "lambda:InvokeFunction",
-        "Principal": {"Fn::If": [
-          "LexBotSeparateRegion",
-          "lambda.amazonaws.com",
-          "lex.amazonaws.com"
-        ]},
-        "SourceAccount": {"Ref": "AWS::AccountId"}
-      }
     }
   },
   "Conditions": {
@@ -829,9 +731,6 @@
     "EnableConfigProvider": {
       "Fn::Equals": [{"Ref": "EnableConfigProvider"}, "1"]
     },
-    "EnableLexBot": {
-      "Fn::Equals": [{"Ref": "EnableLexBot"}, "1"]
-    },
     "SSMDomainIsNotNull": {
       "Fn::Not": [{"Fn::Equals":["", {"Ref": "SSMDomain"}]}]
     },
@@ -858,11 +757,6 @@
         {"Condition": "EnableSSM"},
         {"Condition": "SSMDomainIsNotNull"}
       ]
-    },
-    "LexBotSeparateRegion": {
-      "Fn::Not": [{
-        "Fn::Equals": [{"Ref": "AWS::Region"}, {"Ref": "LexBotRegion"}]
-      }]
     },
     "SSMIFLocalhost": {
       "Fn::Equals": [{"Ref": "SSManagerInterface"}, "1"]
@@ -1150,22 +1044,6 @@
       "Default": "",
       "Description": "Config Provider stack template URL, must be an AWS S3 URL."
     },
-    "EnableLexBot": {
-      "Type": "String",
-      "Default": "0",
-      "AllowedValues": ["0", "1"],
-      "Description": "Specifies whether Amazon Lex Bot should be set up so that a chat interface can be used to manage Shadowsocks manager and node stacks. If you set EnableSSM=1, then you could set this option to '1'. The default is '0'."
-    },
-    "LexBotStackTemplateURL": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Lex Bot stack template URL, must be an AWS S3 URL."
-    },
-    "LexBotRegion": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Region name to deploy the Lex Bot stack, leave blank to deploy the Lex Bot in the default region."
-    },
     "VpcStackTemplateURL": {
       "Type": "String",
       "Default": "",
@@ -1190,16 +1068,6 @@
       "Type": "String",
       "Default": "",
       "Description": "S3 key for SsnLambdaSnsTopicSubscriber."
-    },
-    "S3BucketForLambdaLexBot": {
-      "Type": "String",
-      "Default": "",
-      "Description": "S3 bucket name for LambdaLexBot."
-    },
-    "S3KeyForLambdaLexBot": {
-      "Type": "String",
-      "Default": "",
-      "Description": "S3 key for LambdaLexBot."
     },
     "S3BucketForLambdaSsmApi": {
       "Type": "String",
@@ -1342,10 +1210,6 @@
     "SnsTopicArnForSsn": {
       "Condition": "EnableSSN",
       "Value": {"Ref": "SnsTopicForSsn"}
-    },
-    "LambdaLexBotArn": {
-      "Condition": "EnableLexBot",
-      "Value": {"Fn::GetAtt": ["LambdaLexBot", "Arn"]}
     },
     "IamPeerRoleArn": {
       "Condition": "EnableVpcPeerAcceptor",
