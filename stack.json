@@ -793,6 +793,15 @@
         "Principal": "*",
         "FunctionUrlAuthType": "NONE"
       }
+    },
+    "LambdaSlackBotInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Condition": "EnableSlackBot",
+      "Properties": {
+        "FunctionName": {"Fn::GetAtt": ["LambdaSlackBot", "Arn"]},
+        "Action": "lambda:InvokeFunction",
+        "Principal": "*"
+      }
     }
   },
   "Conditions": {
