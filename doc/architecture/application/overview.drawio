@@ -148,29 +148,17 @@
                 <mxCell id="101" value="DeliveryChannel" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
                     <mxGeometry x="1200" y="1490" width="160" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="132" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontColor=#FFFFFF;startArrow=none;startFill=0;elbow=vertical;curved=1;endArrow=doubleBlock;endFill=0;strokeColor=#CCFFE6;rounded=0;" parent="1" source="106" target="131" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="106" value="Lex Bot Installer Function" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
-                    <mxGeometry x="720" y="1120" width="160" height="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="111" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#FFFFFF;startArrow=none;startFill=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;elbow=vertical;curved=1;endArrow=doubleBlock;endFill=0;strokeColor=default;rounded=0;" parent="1" source="107" target="109" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="107" value="Cross Region Router Installer Function" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
+                <mxCell id="270" value="Slack Bot Function" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
                     <mxGeometry x="720" y="1030" width="160" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="134" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontColor=#FFFFFF;startArrow=none;startFill=0;strokeColor=default;endArrow=block;endFill=0;rounded=0;" parent="1" source="109" target="112" edge="1">
+                <mxCell id="271" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontColor=#CCCCCC;startArrow=none;startFill=0;endArrow=block;endFill=0;elbow=vertical;rounded=0;" parent="1" source="270" target="60" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="109" value="Cross Region Router Function" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
-                    <mxGeometry x="920" y="1120" width="160" height="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="165" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontColor=#CCCCCC;startArrow=none;startFill=0;endArrow=block;endFill=0;elbow=vertical;rounded=0;" parent="1" source="112" target="60" edge="1">
+                <mxCell id="272" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=default;strokeWidth=1;startArrow=none;startFill=0;endArrow=classic;endFill=1;elbow=vertical;rounded=0;" parent="1" source="270" target="69" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="112" value="Lex Bot Dialog Function" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
-                    <mxGeometry x="920" y="990" width="160" height="60" as="geometry"/>
+                <mxCell id="273" value="SNS Message" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;rounded=0;" parent="272" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="114" value="" style="endArrow=none;dashed=1;html=1;strokeWidth=1;fontColor=#FFFFFF;fillColor=#f5f5f5;strokeColor=#9999FF;rounded=0;" parent="1" target="124" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
@@ -198,14 +186,14 @@
                 <mxCell id="69" value="EIP Replacement Topic" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
                     <mxGeometry x="1640" y="1480" width="160" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="130" value="Lex" style="fillColor=#647687;strokeColor=#314354;dashed=1;verticalAlign=top;opacity=20;rounded=0;" parent="1" vertex="1">
+                <mxCell id="274" value="Slack" style="fillColor=#647687;strokeColor=#314354;dashed=1;verticalAlign=top;opacity=20;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="800" y="1260" width="240" height="120" as="geometry"/>
                 </mxCell>
-                <mxCell id="145" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=default;strokeWidth=1;fontColor=#FFFFFF;startArrow=none;startFill=0;curved=1;exitX=0.75;exitY=0;exitDx=0;exitDy=0;endArrow=block;endFill=0;rounded=0;" parent="1" source="131" target="109" edge="1">
+                <mxCell id="275" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;strokeColor=default;strokeWidth=1;startArrow=none;startFill=0;endArrow=block;endFill=0;rounded=0;" parent="1" source="261" target="270" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="131" value="Chat Bot" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
-                    <mxGeometry x="840" y="1300" width="160" height="60" as="geometry"/>
+                <mxCell id="276" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;rounded=0;" parent="275" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="138" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;fontColor=#FFFFFF;startArrow=none;startFill=0;rounded=0;" parent="1" source="137" target="97" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -231,20 +219,6 @@
                 <mxCell id="143" value="CloudWatch" style="fillColor=#647687;strokeColor=#314354;dashed=1;verticalAlign=top;opacity=20;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="1220" y="700" width="240" height="120" as="geometry"/>
                 </mxCell>
-                <mxCell id="146" value="Cross Region" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;strokeColor=#147EBA;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#147EBA;dashed=1;labelBackgroundColor=none;labelBorderColor=none;rounded=0;" parent="1" vertex="1">
-                    <mxGeometry x="760" y="1220" width="320" height="180" as="geometry"/>
-                </mxCell>
-                <mxCell id="147" value="" style="endArrow=classic;strokeColor=default;strokeWidth=1;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;" parent="1" source="112" target="69" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1850" y="1309.23" as="sourcePoint"/>
-                        <mxPoint x="1950" y="1309.23" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="149" value="SNS Message" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;rounded=0;" parent="147" vertex="1" connectable="0">
-                    <mxGeometry x="-0.2063" y="-115" relative="1" as="geometry">
-                        <mxPoint x="-191" y="-85" as="offset"/>
-                    </mxGeometry>
-                </mxCell>
                 <mxCell id="154" value="Logs" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
                     <mxGeometry x="1260" y="740" width="160" height="60" as="geometry"/>
                 </mxCell>
@@ -269,9 +243,6 @@
                 <mxCell id="170" value="VPC Peer Requester Stack" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
                     <mxGeometry x="1600" y="470" width="160" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="172" value="Lex Bot Stack" style="rounded=0;whiteSpace=wrap;html=1;fontColor=#994C00;" parent="1" vertex="1">
-                    <mxGeometry x="920" y="470" width="160" height="60" as="geometry"/>
-                </mxCell>
                 <mxCell id="174" value="Internet&#xa;gateway" style="sketch=0;outlineConnect=0;fontColor=#AAB7B8;strokeColor=#005700;fillColor=#008a00;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.internet_gateway;labelBackgroundColor=none;labelBorderColor=none;fontFamily=Helvetica;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="1700" y="600" width="60" height="60" as="geometry"/>
                 </mxCell>
@@ -294,9 +265,6 @@
                     <mxGeometry x="1242.5" y="320" width="195" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="233" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontFamily=Helvetica;fontColor=#CC99FF;startArrow=none;startFill=0;endArrow=classic;endFill=1;elbow=vertical;rounded=0;" parent="1" source="192" target="169" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="235" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontFamily=Helvetica;fontColor=#CC99FF;startArrow=none;startFill=0;endArrow=classic;endFill=1;elbow=vertical;rounded=0;" parent="1" source="192" target="172" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="236" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontFamily=Helvetica;fontColor=#CC99FF;startArrow=none;startFill=0;endArrow=classic;endFill=1;elbow=vertical;exitX=0;exitY=0.75;exitDx=0;exitDy=0;rounded=0;" parent="1" source="192" target="167" edge="1">
@@ -358,7 +326,7 @@
                 <mxCell id="263" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontFamily=Helvetica;fontColor=#AAB7B8;startArrow=none;startFill=0;endArrow=classic;endFill=1;elbow=vertical;rounded=0;" parent="1" source="225" target="261" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="264" value="Chat" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;rounded=0;" parent="263" vertex="1" connectable="0">
+                <mxCell id="264" value="Slack command" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;rounded=0;" parent="263" vertex="1" connectable="0">
                     <mxGeometry x="0.0075" y="-8" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
@@ -389,10 +357,7 @@
                         <mxPoint y="1" as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="262" style="edgeStyle=orthogonalEdgeStyle;curved=1;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;labelBackgroundColor=none;strokeColor=default;strokeWidth=1;fontFamily=Helvetica;fontColor=#AAB7B8;startArrow=none;startFill=0;endArrow=classic;endFill=1;elbow=vertical;rounded=0;" parent="1" source="261" target="131" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="261" value="IM to LexBot Integration" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;outlineConnect=0;verticalAlign=top;align=center;shape=mxgraph.office.clouds.public_im_cloud_service;rounded=0;" parent="1" vertex="1">
+                <mxCell id="261" value="Slack" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;outlineConnect=0;verticalAlign=top;align=center;shape=mxgraph.office.clouds.public_im_cloud_service;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="160" y="1161" width="102" height="99" as="geometry"/>
                 </mxCell>
             </root>
