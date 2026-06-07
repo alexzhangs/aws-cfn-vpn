@@ -7,7 +7,8 @@ in shadowsocks-manager.
 
 import json
 import os
-import botocore, boto3
+import botocore
+import boto3
 from abc import ABC, abstractmethod
 
 print('Loading function')
