@@ -1,0 +1,29 @@
+name: ci-validate
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  cfn-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cfn-lint
+        run: pip install cfn-lint
+      - name: Lint CloudFormation template
+        run: cfn-lint stack.json --ignore-checks W
+
+  lambda-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint Lambda functions
+        run: ruff check lambdas/*.py --ignore E501
