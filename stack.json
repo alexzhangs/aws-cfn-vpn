@@ -583,7 +583,7 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": {"AWS": "*"},
+              "Principal": {"Service": "config.amazonaws.com"},
               "Action": "sns:Publish",
               "Resource": {"Ref": "SnsTopicForConfig"}
             }
@@ -638,8 +638,33 @@
           ]
         },
         "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-          "arn:aws:iam::aws:policy/AdministratorAccess"
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "ssn-eip-rotate",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:DescribeAddresses",
+                    "ec2:AllocateAddress",
+                    "ec2:AssociateAddress",
+                    "ec2:DisassociateAddress",
+                    "ec2:ReleaseAddress"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "cloudformation:DescribeStackResources",
+                  "Resource": {"Ref": "AWS::StackId"}
+                }
+              ]
+            }
+          }
         ],
         "Path": "/"
       }
@@ -696,7 +721,7 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": {"AWS": "*"},
+              "Principal": {"AWS": {"Ref": "AWS::AccountId"}},
               "Action": "sns:Publish",
               "Resource": {"Ref": "SnsTopicForSsn"}
             }
