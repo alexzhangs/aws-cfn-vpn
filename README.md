@@ -635,10 +635,14 @@ gates.
 1. Encountering errors while executing EC2 userdata.
 
    This might be caused by using the untested AWS AMI.
-   The EC2 userdata is tested only with the following AMIs:
+   The EC2 userdata targets the following AMIs:
 
-   * Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type
-   * Amazon Linux 2 AMI (HVM), SSD Volume Type - This AMI is
-     **RECOMMENDED** for `aws-cfn-vpn`
+   * Amazon Linux 2023 AMI (HVM) - This AMI is **RECOMMENDED** for
+     `aws-cfn-vpn`
+
+   Amazon Linux 2 (end of support 2026-06-30) and Amazon Linux 2018.03
+   were supported up to the pre-AL2023 revisions of this template (the
+   userdata now relies on `yum install docker` from the AL2023 core
+   repos and IMDSv2 tokens).
 
    Feel free to open pull requests for the verified compatible AMIs.
