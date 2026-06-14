@@ -92,8 +92,10 @@ This template will create an AWS CloudFormation stack, including
 following resources:
 
 * 1 EC2 Instance.
-    * Shadowsocks-libev is installed if set `EnableSSN=1`.
-        * v2ray-plugin is installed if set `SSV2Ray=1`.
+    * Shadowsocks server is installed if set `EnableSSN=1`.
+        * `SSEdition=libev` (default): shadowsocks-libev-v2ray, for the classic ciphers.
+            * v2ray-plugin is installed if set `SSV2Ray=1`.
+        * `SSEdition=rust`: [shadowsocks-rust](https://github.com/alexzhangs/shadowsocks-rust), required for the Shadowsocks-2022 ciphers (set `SSEncrypt` to a SS-2022 method, e.g. `2022-blake3-aes-256-gcm`).
     * shadowsocks-manager is installed if set `EnableSSM=1`.
     * L2TPD is installed if set `EnableL2TP=1`.
 

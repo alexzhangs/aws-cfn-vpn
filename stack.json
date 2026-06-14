@@ -225,7 +225,7 @@
                 "\"interface\":\"", {"Ref": "SSManagerInterface"},
                 "\",\"port\":\"", {"Ref": "SSManagerPort"},
                 "\",\"encrypt\":\"", {"Ref": "SSEncrypt"},
-                "\",\"server_edition\":\"", 1,
+                "\",\"server_edition\":\"", {"Fn::If": ["SSEditionRust", 3, 1]},
                 "\",\"is_v2ray_enabled\":\"", {"Ref": "SSV2Ray"},
                 "\"}"
               ]]}
@@ -351,26 +351,38 @@
                   "ss_docker_run_port_opts+=(-p $ss_ports:$ss_ports)\n",
 
                   "ss_docker_run_cmd_opts+=(--manager-address 0.0.0.0:$ssm_port)\n",
-                  "ss_docker_run_cmd_opts+=(--executable /usr/local/bin/ss-server)\n",
-                  "ss_docker_run_cmd_opts+=(-m $ss_encrypt -s 0.0.0.0 -t $ss_timeout -u)\n",
+                  {"Fn::If": ["SSEditionRust", {"Fn::Join": ["", [
+                    "# shadowsocks-rust ssmanager: supports the SS-2022 ciphers and the same\n",
+                    "# multi-user Manager API as shadowsocks-libev's ss-manager. No --executable\n",
+                    "# (servers run in-process); -U enables TCP_AND_UDP relay. v2ray-plugin is\n",
+                    "# libev-only and not used here.\n",
+                    "ss_docker_run_cmd_opts+=(-m $ss_encrypt -s 0.0.0.0 --timeout $ss_timeout -U)\n",
 
-                  {"Fn::If": ["EnableV2Ray", {"Fn::Join": ["", [
-                    "declare ss_domain=", {"Ref":  "SSDomain"}, "\n",
+                    "docker run \"${ss_docker_run_env_opts[@]}\" --restart=always -d \"${ss_docker_run_port_opts[@]}\"",
+                    " --name ss-rust alexzhangs/shadowsocks-rust:$ss_version",
+                    " ssmanager \"${ss_docker_run_cmd_opts[@]}\"\n"
+                  ]]}, {"Fn::Join": ["", [
+                    "ss_docker_run_cmd_opts+=(--executable /usr/local/bin/ss-server)\n",
+                    "ss_docker_run_cmd_opts+=(-m $ss_encrypt -s 0.0.0.0 -t $ss_timeout -u)\n",
 
-                    "ss_docker_run_env_opts+=(-e V2RAY=1 -e DOMAIN=$ss_domain)\n",
-                    "ss_docker_run_cmd_opts+=(--plugin v2ray-plugin --plugin-opts \"server;tls;host=$ss_domain\")\n",
+                    {"Fn::If": ["EnableV2Ray", {"Fn::Join": ["", [
+                      "declare ss_domain=", {"Ref":  "SSDomain"}, "\n",
 
-                    {"Fn::If": ["SSDomainNameServerEnvIsNotNull", {"Fn::Join": ["", [
-                      "declare ss_dns_env=", {"Ref": "SSDomainNameServerEnv"}, "\n",
-                      "ss_docker_run_env_opts+=(-e DNS=dns_lexicon -e DNS_ENV=$ss_dns_env)\n"
-                    ]]}, {"Fn::If": ["DomainNameServerEnvIsNotNull", {"Fn::Join": ["", [
-                      "ss_docker_run_env_opts+=(-e DNS=dns_lexicon -e DNS_ENV=$dns_env)\n"
-                    ]]}, ""]}]}
-                  ]]}, ""]},
+                      "ss_docker_run_env_opts+=(-e V2RAY=1 -e DOMAIN=$ss_domain)\n",
+                      "ss_docker_run_cmd_opts+=(--plugin v2ray-plugin --plugin-opts \"server;tls;host=$ss_domain\")\n",
 
-                  "docker run \"${ss_docker_run_env_opts[@]}\" --restart=always -d \"${ss_docker_run_port_opts[@]}\"",
-                  " --name ss-libev-v2ray alexzhangs/shadowsocks-libev-v2ray:$ss_version",
-                  " ss-manager \"${ss_docker_run_cmd_opts[@]}\"\n"
+                      {"Fn::If": ["SSDomainNameServerEnvIsNotNull", {"Fn::Join": ["", [
+                        "declare ss_dns_env=", {"Ref": "SSDomainNameServerEnv"}, "\n",
+                        "ss_docker_run_env_opts+=(-e DNS=dns_lexicon -e DNS_ENV=$ss_dns_env)\n"
+                      ]]}, {"Fn::If": ["DomainNameServerEnvIsNotNull", {"Fn::Join": ["", [
+                        "ss_docker_run_env_opts+=(-e DNS=dns_lexicon -e DNS_ENV=$dns_env)\n"
+                      ]]}, ""]}]}
+                    ]]}, ""]},
+
+                    "docker run \"${ss_docker_run_env_opts[@]}\" --restart=always -d \"${ss_docker_run_port_opts[@]}\"",
+                    " --name ss-libev-v2ray alexzhangs/shadowsocks-libev-v2ray:$ss_version",
+                    " ss-manager \"${ss_docker_run_cmd_opts[@]}\"\n"
+                  ]]}]}
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
@@ -821,8 +833,12 @@
       "Fn::And": [
         {"Condition": "EnableSSN"},
         {"Condition": "SSDomainIsNotNull"},
+        {"Fn::Equals": [{"Ref": "SSEdition"}, "libev"]},
         {"Fn::Equals": [{"Ref": "SSV2Ray"}, "1"]}
       ]
+    },
+    "SSEditionRust": {
+      "Fn::Equals": [{"Ref": "SSEdition"}, "rust"]
     },
     "EnableSSM": {
       "Fn::Equals": [{"Ref": "EnableSSM"}, "1"]
@@ -979,12 +995,18 @@
       "Type": "String",
       "Default": "0",
       "AllowedValues": ["0", "1"],
-      "Description": "Whether to enable v2ray plugin for Shadowsocks server. 0: no, 1: yes. Default is '0'."
+      "Description": "Whether to enable v2ray plugin for Shadowsocks server. 0: no, 1: yes. Default is '0'. Only applies to the 'libev' edition."
+    },
+    "SSEdition": {
+      "Type": "String",
+      "Default": "libev",
+      "AllowedValues": ["libev", "rust"],
+      "Description": "The Shadowsocks server edition. 'libev' (shadowsocks-libev-v2ray) for the classic ciphers; 'rust' (shadowsocks-rust) for the Shadowsocks-2022 ciphers (e.g. 2022-blake3-aes-256-gcm). When 'rust', set SSEncrypt to a SS-2022 method. Default is 'libev'."
     },
     "SSVersion": {
       "Type": "String",
       "Default": "latest",
-      "Description": "Enter the version of shadowsocks-libev-v2ray. Default is 'latest'."
+      "Description": "Enter the version (Docker image tag) of the selected Shadowsocks edition image (shadowsocks-libev-v2ray or shadowsocks-rust). Default is 'latest'."
     },
     "SnsTopicArn": {
       "Type": "String",
