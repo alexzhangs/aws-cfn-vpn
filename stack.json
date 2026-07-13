@@ -19,7 +19,8 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerAcceptorStackTemplateURL"},
         "Parameters": {
-          "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]}
+          "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]},
+          "PeerRequesterAccountIds": {"Ref": "VpcPeerRequesterAccountIds"}
         },
         "TimeoutInMinutes": "5"
       }
@@ -952,6 +953,11 @@
       "Type": "String",
       "Default": "",
       "Description": "VPC peer acceptor stack template URL, must be an AWS S3 URL."
+    },
+    "VpcPeerRequesterAccountIds": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Used with EnableVpcPeerAcceptor=1. Comma-separated 12-digit AWS account IDs of the node (requester) accounts allowed to assume the peer role and send to the route queue. Passed to the acceptor stack's PeerRequesterAccountIds. The acceptor template requires it (no default there), so leaving this empty fails the acceptor deploy closed instead of trusting every AWS account."
     },
     "EnableVpcPeerRequester": {
       "Type": "String",
