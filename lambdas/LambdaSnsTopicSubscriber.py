@@ -389,7 +389,10 @@ class SSManagerHandler(Handler):
 
         ssmanagers = call_ssm(resource=self.api_path, method='get', params=dict(node__name=self.node_name))
         if ssmanagers:
-            return call_ssm(resource='{}{}/'.format(self.api_path, ssmanagers[0]['id']), method='put', json=data)
+            ssmanager = ssmanagers[0]
+            # PUT is a full update and the serializer requires `node`, keep the existing one
+            data['node'] = ssmanager['node']
+            return call_ssm(resource='{}{}/'.format(self.api_path, ssmanager['id']), method='put', json=data)
         else:
             nodes = call_ssm(resource=NodeHandler.api_path, params=dict(name=self.node_name), method='get')
             if nodes:
