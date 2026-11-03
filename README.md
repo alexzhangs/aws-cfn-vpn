@@ -642,6 +642,12 @@ gates.
    * Amazon Linux 2023 AMI (HVM) - This AMI is **RECOMMENDED** for
      `aws-cfn-vpn`
 
+   The `RegionMap` pins the kernel-6.12 flavor of one AL2023 release
+   (kernel 6.12 carries the CVE-2026-98432 fix). Regenerate it with
+   `xsh aws/cfn/vpn/ami -k 6.12 -r <release> -t stack.json`, e.g.
+   `-r 2023.12.20261029.0`. Any change of the mapped AMI replaces the EC2
+   instance on the next stack update.
+
    Amazon Linux 2 (end of support 2026-06-30) and Amazon Linux 2018.03
    were supported up to the pre-AL2023 revisions of this template (the
    userdata now relies on `yum install docker` from the AL2023 core
