@@ -166,6 +166,7 @@
     },
     "EIP": {
       "Type": "AWS::EC2::EIP",
+      "Condition": "EnableEip",
       "Properties": {
         "Domain": {"Ref": "EipDomain"},
         "InstanceId": {"Ref": "VPNServerInstance"}
@@ -852,6 +853,9 @@
     "IsArm64": {
       "Fn::Equals": [{"Ref": "Architecture"}, "arm64"]
     },
+    "EnableEip": {
+      "Fn::Equals": [{"Ref": "EnableEip"}, "1"]
+    },
     "EnableVpcPeerAcceptor": {
       "Fn::Equals": [{"Ref": "EnableVpcPeerAcceptor"}, "1"]
     },
@@ -1015,6 +1019,12 @@
       "Type": "String",
       "Default": "vpc",
       "Description": "Switch the value between '' and 'vpc' to refresh EIP. The EIP assigned out of stack won't be deleted on stack delete. Default is 'vpc'."
+    },
+    "EnableEip": {
+      "Type": "String",
+      "Default": "1",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether this stack creates and owns the EIP of the EC2 instance. 0: no, 1: yes. Default is '1'. Set '0' on a node stack (EnableSSN=1) once its EIP has been rotated (`/vpn change-ip`): the rotation releases the stack's EIP and associates a new one outside CloudFormation, so the stack's EIP is stale. With '0' the live EIP is left alone, but it must be re-associated by hand after an instance replacement. Setting '0' on a stack that still owns a live EIP releases that EIP."
     },
     "InstanceType": {
       "Type": "String",

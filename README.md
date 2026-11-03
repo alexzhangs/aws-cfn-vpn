@@ -515,21 +515,44 @@ xsh help aws/cfn/vpn/deploy
 
 ## Tips
 
-1. How to change the IP address of the EC2 instance of the Manager stack
-   or the Node stack?
+1. How to change the IP address of the EC2 instance of the Node stack?
 
-    Update the stack with a new value of parameter `EipDomain`, switch the
-the value between `vpc` and an empty string ``, this will change the EIP
-of the EC2 instance.
+    Use one of:
 
-    DO NOT operate on the EIP directly, such as allocate a new EIP
-and associate it, then release the old. This will cause an error
-in locating the original EIP resource when operating on the stack
-level.
+    * `/vpn change-ip <node-name>` in Slack.
+    * The admin web console at `Home › Shadowsocks › Shadowsocks Nodes`.
 
-    For the EC2 instance of the Node stacks, the following methods are recommended:
+    The node's `SsnLambdaSnsTopicSubscriber` then releases the current EIP
+    and associates a new one through the EC2 API, outside CloudFormation.
+    (Toggling the parameter `EipDomain` between `vpc` and `` no longer
+    works: since EC2-Classic was retired, both values give a VPC EIP and
+    CloudFormation sees no change.)
 
-    * Use the admin web console at `Home › Shadowsocks › Shadowsocks Nodes`.
+    After the first rotation the stack's `EIP` resource points at a released
+    address, so the stack no longer owns the node's EIP:
+
+    * Before any other update of that stack, run an update that changes
+      nothing but `EnableEip=0`. CloudFormation drops the stale `EIP`
+      (deleting a missing EIP counts as done) and leaves the live EIP alone.
+      Don't combine it with other changes: if an instance replacement in the
+      same update rolls back, the rollback touches the stale EIP again and
+      can end in `UPDATE_ROLLBACK_FAILED` (recover with
+      `aws cloudformation continue-update-rollback --resources-to-skip EIP`).
+    * Keep `EnableEip=0` on every later update of that stack. With `1`,
+      CloudFormation allocates a new EIP and associates it with the
+      instance, which takes the node off the address its DNS record and
+      the clients use.
+    * With `EnableEip=0`, an instance replacement (e.g. a new AMI in
+      `RegionMap`) leaves the live EIP on the old instance. Move it once the
+      new instance is up:
+
+        ```sh
+        $ aws ec2 associate-address --allow-reassociation --allocation-id <eipalloc-id> --instance-id <new-instance-id>
+        ```
+
+    Don't set `EnableEip=0` on a stack whose EIP was never rotated: the
+    stack still owns that EIP, so CloudFormation deletes it and the address
+    is released.
 
 1. How to enable the HTTPS(SSL certificate) for the Manager stack?
 
