@@ -19,7 +19,8 @@
       "Properties": {
         "TemplateURL": {"Ref": "VpcPeerAcceptorStackTemplateURL"},
         "Parameters": {
-          "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]}
+          "RouteTableId": {"Fn::GetAtt": ["VpcStack", "Outputs.PublicRouteTable"]},
+          "PeerRequesterAccountIds": {"Ref": "VpcPeerRequesterAccountIds"}
         },
         "TimeoutInMinutes": "5"
       }
@@ -71,7 +72,7 @@
             "IpProtocol": "tcp",
             "FromPort": "22",
             "ToPort": "22",
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": {"Ref": "AdminAllowedCidr"}
           }
         ],
         "Tags": [
@@ -148,7 +149,7 @@
         "IpProtocol": "tcp",
         "FromPort": 80,
         "ToPort": 80,
-        "CidrIp": "0.0.0.0/0",
+        "CidrIp": {"Ref": "AdminAllowedCidr"},
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
@@ -159,12 +160,13 @@
         "IpProtocol": "tcp",
         "FromPort": 443,
         "ToPort": 443,
-        "CidrIp": "0.0.0.0/0",
+        "CidrIp": {"Ref": "AdminAllowedCidr"},
         "GroupId": {"Fn::GetAtt": ["VPNServerSG", "GroupId"]}
       }
     },
     "EIP": {
       "Type": "AWS::EC2::EIP",
+      "Condition": "EnableEip",
       "Properties": {
         "Domain": {"Ref": "EipDomain"},
         "InstanceId": {"Ref": "VPNServerInstance"}
@@ -251,7 +253,16 @@
                 " --region ", {"Ref": "AWS::Region"},
                 "' EXIT\n",
 
-                "yum update -y aws-cfn-bootstrap\n",
+                "# enable linux swap file first: dnf on AL2023 is OOM-killed on t4g.nano (512 MiB) without it\n",
+                "dd if=/dev/zero of=/var/swap.1 bs=1M count=2048\n",
+                "chmod 600 /var/swap.1\n",
+                "mkswap /var/swap.1\n",
+                "swapon /var/swap.1\n",
+                "echo '/var/swap.1 swap swap defaults 0 0' >> /etc/fstab\n",
+
+                "# AL2023 may not preinstall the cfn helper scripts; install is a\n",
+                "# no-op/update when they are already present.\n",
+                "yum install -y aws-cfn-bootstrap\n",
                 "# Install the files and packages from the metadata\n",
                 "#/opt/aws/bin/cfn-init ",
                 "#         --stack ", {"Ref": "AWS::StackName"},
@@ -259,25 +270,21 @@
                 "#         --configsets InstallAndRun ",
                 "#         --region ", {"Ref": "AWS::Region"}, "\n",
 
-                "# enable linux swap file\n",
-                "dd if=/dev/zero of=/var/swap.1 bs=1M count=2048\n",
-                "chmod 600 /var/swap.1\n",
-                "mkswap /var/swap.1\n",
-                "swapon /var/swap.1\n",
-                "echo '/var/swap.1 swap swap defaults 0 0' >> /etc/fstab\n",
-
                 "yum update -y\n",
 
                 "yum install -y git\n",
                 "export PATH=/usr/local/bin:$PATH\n",
                 "export HOME=~\n",
 
-                "amazon-linux-extras install -y docker\n",
+                "# AL2023: docker lives in the core repos (amazon-linux-extras is AL2-only)\n",
+                "yum install -y docker\n",
                 "systemctl start docker\n",
                 "systemctl enable docker\n",
 
-                "declare public_ip=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)\n",
-                "declare private_ip=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)\n",
+                "# AL2023 AMIs default to IMDSv2-required: fetch a session token first\n",
+                "declare imds_token=$(curl -sX PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 300')\n",
+                "declare public_ip=$(curl -s -H \"X-aws-ec2-metadata-token: $imds_token\" http://169.254.169.254/latest/meta-data/public-ipv4)\n",
+                "declare private_ip=$(curl -s -H \"X-aws-ec2-metadata-token: $imds_token\" http://169.254.169.254/latest/meta-data/local-ipv4)\n",
 
                 "declare ss_port_begin=", {"Ref": "SSPortBegin"}, "\n",
                 "declare ss_port_end=", {"Ref": "SSPortEnd"}, "\n",
@@ -386,19 +393,20 @@
                 ]]}, ""]},
 
                 {"Fn::If": ["EnableL2TP", {"Fn::Join": ["", [
-                  "git clone --depth 1 https://github.com/alexzhangs/aws-ec2-xl2tpd\n",
-                  "git clone --depth 1 https://github.com/alexzhangs/chap-manager\n",
-
-                  "bash aws-ec2-xl2tpd/install.sh",
-                  " -k '", {"Ref": "L2TPSharedKey"}, "'",
-                  " -p '", {"Ref": "L2TPPrimaryDNS"}, "'",
-                  " -s '", {"Ref": "L2TPSecondaryDNS"}, "'\n",
-
-                  "bash chap-manager/install.sh\n",
-
-                  "chap-manager.sh -a add",
-                  " -u '", {"Ref": "L2TPUsername"}, "'",
-                  " -p '", {"Ref": "L2TPPassword"}, "'\n"
+                  "# L2TP/IPsec runs containerized (libreswan + xl2tpd + bundled chap-manager);\n",
+                  "# the legacy host install needed EPEL packages that AL2023 does not ship.\n",
+                  "# --privileged + host network + /lib/modules: pppd needs /dev/ppp via the\n",
+                  "# host's kernel modules, IKE/NAT-T must terminate on the host's UDP 500/4500,\n",
+                  "# and the NAT rules for the client pool live in the host netns.\n",
+                  "docker run -d --name l2tpd --restart=always",
+                  " --privileged --network=host",
+                  " -v /lib/modules:/lib/modules:ro",
+                  " -e IPSEC_PSK='", {"Ref": "L2TPSharedKey"}, "'",
+                  " -e L2TP_USERNAME='", {"Ref": "L2TPUsername"}, "'",
+                  " -e L2TP_PASSWORD='", {"Ref": "L2TPPassword"}, "'",
+                  " -e PRIMARY_DNS='", {"Ref": "L2TPPrimaryDNS"}, "'",
+                  " -e SECONDARY_DNS='", {"Ref": "L2TPSecondaryDNS"}, "'",
+                  " alexzhangs/xl2tpd-libreswan:latest\n"
                 ]]}, ""]}
               ]
             ]
@@ -595,7 +603,7 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": {"AWS": "*"},
+              "Principal": {"Service": "config.amazonaws.com"},
               "Action": "sns:Publish",
               "Resource": {"Ref": "SnsTopicForConfig"}
             }
@@ -650,8 +658,33 @@
           ]
         },
         "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-          "arn:aws:iam::aws:policy/AdministratorAccess"
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "ssn-eip-rotate",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:DescribeAddresses",
+                    "ec2:AllocateAddress",
+                    "ec2:AssociateAddress",
+                    "ec2:DisassociateAddress",
+                    "ec2:ReleaseAddress"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "cloudformation:DescribeStackResources",
+                  "Resource": {"Ref": "AWS::StackId"}
+                }
+              ]
+            }
+          }
         ],
         "Path": "/"
       }
@@ -708,7 +741,7 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": {"AWS": "*"},
+              "Principal": {"AWS": {"Ref": "AWS::AccountId"}},
               "Action": "sns:Publish",
               "Resource": {"Ref": "SnsTopicForSsn"}
             }
@@ -820,6 +853,9 @@
     "IsArm64": {
       "Fn::Equals": [{"Ref": "Architecture"}, "arm64"]
     },
+    "EnableEip": {
+      "Fn::Equals": [{"Ref": "EnableEip"}, "1"]
+    },
     "EnableVpcPeerAcceptor": {
       "Fn::Equals": [{"Ref": "EnableVpcPeerAcceptor"}, "1"]
     },
@@ -908,6 +944,15 @@
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
     },
+    "AdminAllowedCidr": {
+      "Type": "String",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR allowed to reach the administrative surfaces: SSH (22), the shadowsocks-manager web UI (80) and TLS UI (443). Defaults to 0.0.0.0/0 for backward compatibility, but SET THIS to your admin/bastion CIDR (e.g. 203.0.113.4/32). Does NOT affect the public VPN service ports (Shadowsocks, L2TP) which must stay open to clients.",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
     "EnableVpcPeerAcceptor": {
       "Type": "String",
       "Default": "0",
@@ -918,6 +963,11 @@
       "Type": "String",
       "Default": "",
       "Description": "VPC peer acceptor stack template URL, must be an AWS S3 URL."
+    },
+    "VpcPeerRequesterAccountIds": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Used with EnableVpcPeerAcceptor=1. Comma-separated 12-digit AWS account IDs of the node (requester) accounts allowed to assume the peer role and send to the route queue. Passed to the acceptor stack's PeerRequesterAccountIds. The acceptor template requires it (no default there), so leaving this empty fails the acceptor deploy closed instead of trusting every AWS account."
     },
     "EnableVpcPeerRequester": {
       "Type": "String",
@@ -969,6 +1019,12 @@
       "Type": "String",
       "Default": "vpc",
       "Description": "Switch the value between '' and 'vpc' to refresh EIP. The EIP assigned out of stack won't be deleted on stack delete. Default is 'vpc'."
+    },
+    "EnableEip": {
+      "Type": "String",
+      "Default": "1",
+      "AllowedValues": ["0", "1"],
+      "Description": "Whether this stack creates and owns the EIP of the EC2 instance. 0: no, 1: yes. Default is '1'. Set '0' on a node stack (EnableSSN=1) once its EIP has been rotated (`/vpn change-ip`): the rotation releases the stack's EIP and associates a new one outside CloudFormation, so the stack's EIP is stale. With '0' the live EIP is left alone, but it must be re-associated by hand after an instance replacement. Setting '0' on a stack that still owns a live EIP releases that EIP."
     },
     "InstanceType": {
       "Type": "String",
@@ -1261,139 +1317,139 @@
   "Mappings": {
     "RegionMap": {
       "ap-northeast-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-006364fbd0e812d5e",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-09be0d7ea855efaf9",
-        "created": "2026-05-21T18:12:45.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0d6ee5b06d13e7d94",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0f73d81995003de5c",
+        "created": "2026-10-29T18:10:08.000Z",
         "location": "Asia Pacific (Tokyo)"
       },
       "ap-northeast-2": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0f0ce59d54cc368b3",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-08a19a5bb68af2bf8",
-        "created": "2026-05-21T18:06:05.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0ed6b91b3f382e232",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0875404c24a867a23",
+        "created": "2026-10-29T18:10:02.000Z",
         "location": "Asia Pacific (Seoul)"
       },
       "ap-northeast-3": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-040ac1d7bbe22fd8e",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-06b4108cb2375daf3",
-        "created": "2026-05-21T18:06:19.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0036e96c68be6f4c0",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-07d8b3528c99d59b4",
+        "created": "2026-10-29T18:10:01.000Z",
         "location": "Asia Pacific (Osaka)"
       },
       "ap-south-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-00c5d5e886a26d124",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-0d9a5630e9538b51f",
-        "created": "2026-05-21T18:06:14.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0f3aeb5fecedf8962",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0e735928d5ed4c171",
+        "created": "2026-10-29T18:10:03.000Z",
         "location": "Asia Pacific (Mumbai)"
       },
       "ap-southeast-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0e8bf7e1d1f339c74",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-05cf69f80c308c1f8",
-        "created": "2026-05-21T18:06:18.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-073beff58bdc427dd",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-09dec2a0ac560315d",
+        "created": "2026-10-29T18:10:02.000Z",
         "location": "Asia Pacific (Singapore)"
       },
       "ap-southeast-2": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0c4ca191c5ba10793",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-0dce9d90dde833bac",
-        "created": "2026-05-21T18:06:17.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0243c0d65c5a59cce",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-06f8bd668fe8b50c5",
+        "created": "2026-10-29T18:10:12.000Z",
         "location": "Asia Pacific (Sydney)"
       },
       "ca-central-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0000d5ca154ee91d4",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-053517da2230b7930",
-        "created": "2026-05-21T18:12:43.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0b55bda2b934a107f",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-02a2749721bab2fd4",
+        "created": "2026-10-29T18:10:02.000Z",
         "location": "Canada (Central)"
       },
       "eu-central-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0af964531014e9a60",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-01ae2826e5a255590",
-        "created": "2026-05-21T18:12:55.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0f75e7e22e1d1354b",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0a9cc6ff559bbb141",
+        "created": "2026-10-29T18:10:02.000Z",
         "location": "Europe (Frankfurt)"
       },
       "eu-north-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0d25d4b80a73a8948",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-0b32a3aa8fac8994f",
-        "created": "2026-05-21T18:06:19.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0a3c96beaac66b22e",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0d032a0c15c1ab9d3",
+        "created": "2026-10-29T18:10:14.000Z",
         "location": "Europe (Stockholm)"
       },
       "eu-west-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0e59c64f4e013cb5f",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-04c19fc5e06cfc88e",
-        "created": "2026-05-21T18:12:47.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-01705d7e782a3fa06",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0bbb44c70f92aea79",
+        "created": "2026-10-29T18:10:01.000Z",
         "location": "Europe (Ireland)"
       },
       "eu-west-2": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0ec7d503f466ab809",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-019fccdbc86099c98",
-        "created": "2026-05-21T18:12:49.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0aca6014e8be4712a",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0a1391f387c3b898a",
+        "created": "2026-10-29T18:10:01.000Z",
         "location": "Europe (London)"
       },
       "eu-west-3": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-06cf836a152a19276",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-05ba889900ecb6b48",
-        "created": "2026-05-21T18:06:18.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0439d021eb96995ee",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-07e9f8674ddd3f882",
+        "created": "2026-10-29T18:10:02.000Z",
         "location": "Europe (Paris)"
       },
       "sa-east-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0e8494bdfecb07069",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-011ace3574ac85ef7",
-        "created": "2026-05-21T18:06:16.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0cd28bf232bf3c803",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-016ab78103f71889f",
+        "created": "2026-10-29T18:10:06.000Z",
         "location": "South America (Sao Paulo)"
       },
       "us-east-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-046b36f55e189564a",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-0537561b54bdeb5bc",
-        "created": "2026-05-21T18:12:49.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-06194f0ec4a8d60d3",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-08362692fc2cd7db2",
+        "created": "2026-10-29T18:10:01.000Z",
         "location": "US East (N. Virginia)"
       },
       "us-east-2": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0ae3c5abab3d5cb90",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-0a71fc9a8ab5be978",
-        "created": "2026-05-21T18:12:43.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0f3bb4ad77297e9e8",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0e61dbfe9b7193549",
+        "created": "2026-10-29T18:10:00.000Z",
         "location": "US East (Ohio)"
       },
       "us-west-1": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-0679b96f0452f05e1",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-03be23223285bb7aa",
-        "created": "2026-05-21T18:06:12.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-0a7dc7cd47a674810",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-00b435c2a1b0af324",
+        "created": "2026-10-29T18:10:05.000Z",
         "location": "US West (N. California)"
       },
       "us-west-2": {
-        "nameAmd64": "amzn2-ami-hvm-2.0.20260526.0-x86_64-gp2",
-        "AMIAmd64": "ami-08812a845130824aa",
-        "nameArm64": "amzn2-ami-hvm-2.0.20260526.0-arm64-gp2",
-        "AMIArm64": "ami-0730d412cb3cb28cb",
-        "created": "2026-05-21T18:00:03.000Z",
+        "nameAmd64": "al2023-ami-2023.12.20261029.0-kernel-6.12-x86_64",
+        "AMIAmd64": "ami-07b8ee81947d80a9f",
+        "nameArm64": "al2023-ami-2023.12.20261029.0-kernel-6.12-arm64",
+        "AMIArm64": "ami-0e5393386bc15d80f",
+        "created": "2026-10-29T18:03:39.000Z",
         "location": "US West (Oregon)"
       }
     }
